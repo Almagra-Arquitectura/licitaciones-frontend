@@ -215,7 +215,7 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
-  margin-top: 0.7rem;
+  margin: 0.7rem 10px;
 }
 .request-card {
   width: 100%;
@@ -311,7 +311,7 @@ h1 {
     flex-direction: column;
     align-items: stretch;
     gap: 0.5rem;
-    padding: 0.5rem 0.5rem;
+    padding: 0.8rem 0.8rem;
     top: 70px;
   }
   .filter-input, .filter-select {
