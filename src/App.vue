@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue';
 // To git push
 //git add .
-//git commit -m "commentary"
+//git commit -m "Second interface"
 //git push
 
 // Generate 100 mock requests
@@ -102,10 +102,19 @@ function handleGenerateClick() {
           <p class="subtitle">Find and explore the latest public design requests, filtered by AI.</p>
         </div>
         <div class="theme-toggle">
-          <span>Dark</span>
+          <!-- From Uiverse.io by artginzburg --> 
           <label class="switch">
-            <input v-model="isDark" type="checkbox">
+            <input v-model="isDark" class="checkbox" type="checkbox" />
             <span class="slider"></span>
+            <!--Copyright - 2026 Praashoo7 (Prashant) 
+Copyright - 2026 artginzburg (Arthur Ginzburg) 
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
           </label>
         </div>
       </div>
@@ -159,6 +168,15 @@ function handleGenerateClick() {
                     </div>
                   </button>
                   <div v-else class="generated-text-area whitespace-pre-wrap">{{ displayedText }}</div>
+                <!--Copyright - 2026 Ashon-G (Vashon Gonzales) 
+Copyright - 2026 adamgiebl (Adam Giebl) 
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
                 </div>
               </div>
             </div>
@@ -241,6 +259,7 @@ h1 {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  transform: rotate(90deg);
 }
 
 .filters {
@@ -471,63 +490,73 @@ h1 {
   display: none !important;
 }
 
+/* The switch - the box around the slider */
 .switch {
+  --container-width: 3.5em;
+
   font-size: 17px;
   position: relative;
   display: inline-block;
-  width: 3.5em;
+  width: var(--container-width);
   height: 2em;
 }
 
-.switch input {
+/* Hide default HTML checkbox */
+.switch .checkbox {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
+/* The slider */
 .slider {
+  --width: 0.4em;
+  --offset: 0.3em;
+  --transition-duration: 0.4s;
+
   position: absolute;
   cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: #ccc;
   box-shadow: inset 2px 5px 10px rgba(0, 0, 0, 0.3);
-  transition: 0.4s;
+  transition: var(--transition-duration);
+  transition-property: background-color, box-shadow;
   border-radius: 5px;
 }
 
-.slider:before {
+.slider::before {
   position: absolute;
   content: "";
   height: 1.4em;
-  width: 0.1em;
-  border-radius: 0px;
-  left: 0.3em;
-  bottom: 0.3em;
+  width: var(--width);
+  border-radius: 0.1em;
+  left: var(--offset);
+  bottom: var(--offset);
   background-color: white;
-  transition: 0.4s;
+  transition: transform var(--transition-duration);
 }
 
-input:checked+.slider {
+.checkbox:checked + .slider {
   background-color: #171717;
-  box-shadow: inset 2px 5px 10px rgb(0, 0, 0);
+  box-shadow: inset 2px 5px 10px transparent;
 }
 
-input:checked+.slider:before {
-  transform: translateX(2.8em) rotate(360deg);
+.checkbox:checked + .slider::before {
+  transform: translateX(
+      calc(var(--container-width) - var(--offset) * 2 - var(--width))
+    )
+    rotate(1turn);
 }
 
 .dark-mode {
-  background: #0b0b0b;
-  color: #e5e5e5;
+  background: #1a1a1a;
+  color: #f0f0f0;
 }
 
 .dark-mode .header {
-  color: #e5e5e5;
-  background: rgba(0, 0, 0, 0.65);
-  box-shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.5);
+  color: #f0f0f0;
+  background: rgba(28, 28, 28, 0.85);
+  box-shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.45);
 }
 
 .logo-img {
@@ -539,63 +568,62 @@ input:checked+.slider:before {
 }
 
 .dark-mode .subtitle {
-  color: #a3a3a3;
+  color: #c4c4c4;
 }
 
 .dark-mode .filters {
   background: transparent;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .dark-mode .filter-input,
 .dark-mode .filter-select {
-  background: #111111;
-  color: #e5e5e5;
-  box-shadow: inset 2px 2px 8px #000000, inset -2px -2px 8px #1a1a1a;
+  background: #222222;
+  color: #f0f0f0;
+  box-shadow: inset 2px 2px 8px #121212, inset -2px -2px 8px #2c2c2c;
 }
 
 .dark-mode .filter-input::placeholder {
-  color: #737373;
+  color: #9a9a9a;
 }
 
 .dark-mode .filter-input:focus,
 .dark-mode .filter-select:focus {
-  box-shadow: 0 0 0 2px #404040;
+  box-shadow: 0 0 0 2px #5a5a5a;
 }
 
 .dark-mode .request-main-info h2 {
-  color: #f5f5f5;
+  color: #f6f6f6;
 }
 
 .dark-mode .request-card-content{
-  background-color: #000000;
+  background-color: #1f1f1f;
 }
 
 .dark-mode .request-genre {
-  color: #bdbdbd;
+  color: #d0d0d0;
 }
 
 .dark-mode .request-details a {
-  color: #e5e5e5;
+  color: #e0e0e0;
 }
 
 .dark-mode .request-card {
-  background: #111111;
-  box-shadow: 4px 4px 12px #000000, -4px -4px 12px #1a1a1a;
+  background: #202020;
+  box-shadow: 4px 4px 12px #0f0f0f, -4px -4px 12px #2a2a2a;
 }
 
 .dark-mode .neumorph-card:hover {
-  box-shadow: 0 8px 32px 0 #000000, 0 1.5px 8px 0 #1a1a1a;
+  box-shadow: 0 8px 32px 0 #0f0f0f, 0 1.5px 8px 0 #2a2a2a;
 }
 
 .dark-mode .no-results {
-  color: #a3a3a3;
+  color: #bdbdbd;
 }
 
 .dark-mode .generated-text-area {
-  background: #0f0f0f;
-  color: #e5e5e5;
-  box-shadow: inset 7px 7px 19px #000000, inset -7px -7px 19px #1a1a1a;
+  background: #1c1c1c;
+  color: #f0f0f0;
+  box-shadow: inset 7px 7px 19px #0f0f0f, inset -7px -7px 19px #2a2a2a;
 }
 
 .uiverse {
@@ -630,6 +658,8 @@ input:checked+.slider:before {
   background: radial-gradient(circle, var(--c-radial-inner), var(--c-radial-outer) 80%);
   box-shadow: 0 0 14px var(--c-shadow);
 }
+</style>
+<style>
 
 .uiverse:before {
   content: '';
@@ -643,8 +673,22 @@ input:checked+.slider:before {
   border-radius: 24px;
   box-shadow: inset 0 3px 12px var(--c-shadow-inset-top), inset 0 -3px 4px var(--c-shadow-inset-bottom);
 }
-</style>
-<style>
+
+.uiverse:before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 24px;
+  box-shadow:
+    inset 0 3px 12px var(--c-shadow-inset-top),
+    inset 0 -3px 4px var(--c-shadow-inset-bottom);
+}
+
 .uiverse .wrapper {
   -webkit-mask-image: -webkit-radial-gradient(white, black);
   overflow: hidden;
@@ -657,6 +701,10 @@ input:checked+.slider:before {
   display: inline-block;
   position: relative;
   z-index: 1;
+}
+
+.uiverse:hover {
+  --duration: 1400ms;
 }
 
 .uiverse .wrapper .circle {
@@ -773,170 +821,122 @@ input:checked+.slider:before {
 }
 
 @keyframes circle-1 {
-  0% {
-    transform: translate(0px, 0px) translateZ(0);
-  }
-
-  50% {
+  33% {
     transform: translate(0px, 16px) translateZ(0);
   }
 
-  100% {
-    transform: translate(0px, 0px) translateZ(0);
+  66% {
+    transform: translate(12px, 64px) translateZ(0);
   }
 }
 
 @keyframes circle-2 {
-  0% {
+  33% {
     transform: translate(80px, -10px) translateZ(0);
   }
 
-  50% {
+  66% {
     transform: translate(72px, -48px) translateZ(0);
-  }
-
-  100% {
-    transform: translate(80px, -10px) translateZ(0);
   }
 }
 
 @keyframes circle-3 {
-  0% {
+  33% {
     transform: translate(20px, 12px) translateZ(0);
   }
 
-  50% {
+  66% {
     transform: translate(12px, 4px) translateZ(0);
-  }
-
-  100% {
-    transform: translate(20px, 12px) translateZ(0);
   }
 }
 
 @keyframes circle-4 {
-  0% {
+  33% {
     transform: translate(76px, -12px) translateZ(0);
   }
 
-  50% {
+  66% {
     transform: translate(112px, -8px) translateZ(0);
-  }
-
-  100% {
-    transform: translate(76px, -12px) translateZ(0);
   }
 }
 
 @keyframes circle-5 {
-  0% {
+  33% {
     transform: translate(84px, 28px) translateZ(0);
   }
 
-  50% {
+  66% {
     transform: translate(40px, -32px) translateZ(0);
-  }
-
-  100% {
-    transform: translate(84px, 28px) translateZ(0);
   }
 }
 
 @keyframes circle-6 {
-  0% {
+  33% {
     transform: translate(28px, -16px) translateZ(0);
   }
 
-  50% {
+  66% {
     transform: translate(76px, -56px) translateZ(0);
-  }
-
-  100% {
-    transform: translate(28px, -16px) translateZ(0);
   }
 }
 
 @keyframes circle-7 {
-  0% {
+  33% {
     transform: translate(8px, 28px) translateZ(0);
   }
 
-  50% {
+  66% {
     transform: translate(20px, -60px) translateZ(0);
-  }
-
-  100% {
-    transform: translate(8px, 28px) translateZ(0);
   }
 }
 
 @keyframes circle-8 {
-  0% {
+  33% {
     transform: translate(32px, -4px) translateZ(0);
   }
 
-  50% {
+  66% {
     transform: translate(56px, -20px) translateZ(0);
-  }
-
-  100% {
-    transform: translate(32px, -4px) translateZ(0);
   }
 }
 
 @keyframes circle-9 {
-  0% {
+  33% {
     transform: translate(20px, -12px) translateZ(0);
   }
 
-  50% {
+  66% {
     transform: translate(80px, -8px) translateZ(0);
-  }
-
-  100% {
-    transform: translate(20px, -12px) translateZ(0);
   }
 }
 
 @keyframes circle-10 {
-  0% {
+  33% {
     transform: translate(68px, 20px) translateZ(0);
   }
 
-  50% {
+  66% {
     transform: translate(100px, 28px) translateZ(0);
-  }
-
-  100% {
-    transform: translate(68px, 20px) translateZ(0);
   }
 }
 
 @keyframes circle-11 {
-  0% {
+  33% {
     transform: translate(4px, 4px) translateZ(0);
   }
 
-  50% {
+  66% {
     transform: translate(68px, 20px) translateZ(0);
-  }
-
-  100% {
-    transform: translate(4px, 4px) translateZ(0);
   }
 }
 
 @keyframes circle-12 {
-  0% {
+  33% {
     transform: translate(56px, 0px) translateZ(0);
   }
 
-  50% {
+  66% {
     transform: translate(60px, -32px) translateZ(0);
-  }
-
-  100% {
-    transform: translate(56px, 0px) translateZ(0);
   }
 }
 </style>
