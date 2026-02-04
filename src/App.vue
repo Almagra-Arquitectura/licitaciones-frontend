@@ -1,10 +1,62 @@
 <script setup>
 import { ref, computed } from 'vue';
+import axios from 'axios';
 // To git push
 //git add .
 //git commit -m "Second interface"
 //git push
+// --- ESTADO (Antes data()) ---
+const licitaciones = ref([]);
+const loading = ref(false);
+const searchQuery = ref('');
 
+// --- LÓGICA / MÉTODOS (Antes methods) ---
+
+// Función para traer datos de tu API de NestJS
+const obtenerDatos = async () => {
+  loading.value = true;
+  try {
+    // Cambia esta URL por la de tu backend
+    const { data } = await axios.get('http://localhost:3000/api/licitaciones');
+    console.log('Datos obtenidos:', data);
+    licitaciones.value = data;
+  } catch (error) {
+    console.error('Error al obtener licitaciones:', error);
+    alert('No se pudo conectar con el servidor.');
+  } finally {
+    loading.value = false;
+  }
+};
+
+const formatMoneda = (valor) => {
+  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(valor);
+};
+
+const generarPropuesta = (id) => {
+  console.log(`Iniciando agente AI para licitación: ${id}`);
+  // Aquí llamarías a tu proceso de OpenClaw o LangChain
+};
+
+// --- PROPIEDADES COMPUTADAS (Computed) ---
+const licitacionesFiltradas = computed(() => {
+  if (!searchQuery.value) return licitaciones.value;
+  return licitaciones.value.filter(l => 
+    l.objeto.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+    l.expediente.toLowerCase().includes(searchQuery.value.toLowerCase())
+  );
+});
+
+// --- HOOKS (Antes created/mounted) ---
+
+// En Vue 3.5, lo que quieres que pase al "crearse" el componente
+// simplemente se escribe aquí en la raíz del script.
+console.log("Componente inicializado...");
+
+// Si necesitas que algo pase específicamente cuando el DOM esté listo:
+onMounted(() => {
+  console.log("Componente montado en el DOM.");
+  obtenerDatos();
+});
 // Generate 100 mock requests
 const genresList = ['Poster', 'Logo', 'Web', 'UI', 'UX', 'Branding', 'Print', 'Social', 'Packaging'];
 const payments = ['On delivery', '50% upfront', 'Monthly', 'Full payment', 'After approval'];
@@ -133,21 +185,21 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
       <!-- Requests list -->
       <main class="container mt-[120px] lg:mt-[40px]">
-        <div v-if="filteredRequests.length === 0" class="no-results">
+        <div v-if="licitacionesFiltradas.length === 0" class="no-results">
           No requests found.
         </div>
         <div v-else class="request-list">
-          <div v-for="(request, idx) in filteredRequests" :key="request.id" class="request-card neumorph-card">
+          <div v-for="(request, idx) in licitacionesFiltradas" :key="request.id" class="request-card neumorph-card">
             <div class="request-card-content">
               <div class="request-main-info">
-                <h2>{{ request.title }}</h2>
-                <div class="request-genre">{{ request.genre }}</div>
+                <h2>{{ request.objeto_cont }}</h2>
+                <div class="request-genre">{{ request.expediente }}</div>
               </div>
               <div class="request-details">
-                <div><strong>Price:</strong> {{ request.price }}</div>
-                <div><strong>Payment terms:</strong> {{ request.payment }}</div>
-                <div><strong>Deadline:</strong> {{ request.deadline }}</div>
-                <div><strong>PDF:</strong> <a :href="'/public/' + request.pdf" target="_blank">{{ request.pdf }}</a>
+                <div><strong>Price:</strong> {{ request.importe }}</div>
+                <div><strong>Place:</strong> {{ request.lugar_ejecucion }}</div>
+                <div><strong>Deadline:</strong> {{ request.fecha_fin_po }}</div>
+                <div><strong>PDF:</strong> <a :href="request.url" target="_blank">{{ request.url }}</a>
                 </div>
                 <div v-if="idx === 0" style="min-width:220px;">
                   <button v-if="!showGeneratedText" class="uiverse" @click="handleGenerateClick">
@@ -942,8 +994,7 @@ h1 {
 </style>
 
 <script>
-import { ref, onMounted } from "vue"
-
+import { ref, computed, onMounted } from "vue"
 const text = ``
 
 const speedMs = 40
@@ -963,4 +1014,8 @@ onMounted(() => {
 
   tick()
 })
+
+
+
+
 </script>
