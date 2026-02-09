@@ -7,25 +7,39 @@ import axios from 'axios';
 //git push
 // --- ESTADO (Antes data()) ---
 const licitaciones = ref([]);
+const pagination = ref({ total: 0, pages: 1, currentPage: 1, pageSize: 10 });
 const loading = ref(false);
 const search = ref('');
 
 // --- LÓGICA / MÉTODOS (Antes methods) ---
 
 // Función para traer datos de tu API de NestJS
-const obtenerDatos = async () => {
+const obtenerDatos = async (targetPage = pagination.value.currentPage) => {
   loading.value = true;
   try {
     // Cambia esta URL por la de tu backend
-    const { data } = await axios.get('http://localhost:3000/api/licitaciones');
+    const { data } = await axios.get('http://localhost:3000/api/licitaciones', {
+      params: {
+        page: targetPage,
+        limit: pagination.value.pageSize,
+      },
+    });
     console.log('Datos obtenidos:', data);
-    licitaciones.value = data;
+    licitaciones.value = data.results;
+    pagination.value = data.info;
   } catch (error) {
     console.error('Error al obtener licitaciones:', error);
     alert('No se pudo conectar con el servidor.');
   } finally {
     loading.value = false;
   }
+};
+
+const goToPage = (nextPage) => {
+  const total = pagination.value.pages || 1;
+  const safePage = Math.min(Math.max(1, nextPage), total);
+  if (safePage === pagination.value.currentPage) return;
+  obtenerDatos(safePage);
 };
 
 const formatMoneda = (valor) => {
@@ -235,6 +249,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
               <div class="request-details">
                 <div><strong>Price:</strong> {{ request.importe }}</div>
                 <div><strong>Place:</strong> {{ request.lugar_ejecucion }}</div>
+                <div><strong>Published:</strong> {{ request.f_publicacion }}</div>
                 <div><strong>Deadline:</strong> {{ request.fecha_fin_po }}</div>
                 <div><strong>URL:</strong> <a :href="request.url" target="_blank" rel="noopener">Licitacion</a></div>
                 <div v-if="request.archivos_principales && request.archivos_principales.length">
@@ -296,6 +311,25 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
               </div>
             </div>
           </div>
+        </div>
+        <div v-if="licitacionesFiltradas.length > 0" class="pagination">
+          <button
+            class="pagination-btn"
+            :disabled="loading || pagination.currentPage <= 1"
+            @click="goToPage(pagination.currentPage - 1)"
+          >
+            Previous
+          </button>
+          <div class="pagination-info">
+            Page {{ pagination.currentPage }} / {{ pagination.pages }} • {{ pagination.total }} total
+          </div>
+          <button
+            class="pagination-btn"
+            :disabled="loading || pagination.currentPage >= pagination.pages"
+            @click="goToPage(pagination.currentPage + 1)"
+          >
+            Next
+          </button>
         </div>
       </main>
     </div>
@@ -548,6 +582,35 @@ a.download-btn {
   margin-top: 3rem;
 }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1.2rem 0 2rem 0;
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: none;
+  background: #f4f6fa;
+  box-shadow: 2px 2px 8px #e3e9f1, -2px -2px 8px #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-size: 0.95rem;
+  color: #555;
+  font-weight: 600;
+}
+
 .generated-text-area {
   padding: 0.7rem 1rem;
   border-radius: 15px;
@@ -762,6 +825,16 @@ a.download-btn {
   background: #1c1c1c;
   color: #f0f0f0;
   box-shadow: inset 7px 7px 19px #0f0f0f, inset -7px -7px 19px #2a2a2a;
+}
+
+.dark-mode .pagination-btn {
+  background: #222222;
+  color: #f0f0f0;
+  box-shadow: inset 2px 2px 8px #121212, inset -2px -2px 8px #2c2c2c;
+}
+
+.dark-mode .pagination-info {
+  color: #cfcfcf;
 }
 
 /* .boutondegael{
