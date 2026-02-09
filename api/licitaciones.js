@@ -21,6 +21,8 @@ export default async function handler(req, res) {
     // Usamos parseInt para asegurar que sean números
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || '';
+    const query1 = search ? { objeto_cont: { $regex: search, $options: 'i' } } : {};
 
     // 2. Calcular cuántos documentos saltar
     const skip = (page - 1) * limit;
@@ -30,7 +32,7 @@ export default async function handler(req, res) {
     const totalLicitaciones = await coleccion.countDocuments({});
     
     const licitaciones = await coleccion
-      .find({})
+      .find(query1)
       .sort({ _id: -1 }) // Ordenar por los más recientes
       .skip(skip)
       .limit(limit)
