@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 // To git push
 //git add .
@@ -8,7 +8,7 @@ import axios from 'axios';
 // --- ESTADO (Antes data()) ---
 const licitaciones = ref([]);
 const loading = ref(false);
-const searchQuery = ref('');
+const search = ref('');
 
 // --- LÓGICA / MÉTODOS (Antes methods) ---
 
@@ -32,18 +32,55 @@ const formatMoneda = (valor) => {
   return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(valor);
 };
 
+const streamUrlFor = (fileId) => `http://localhost:3000/api/stream?file_id=${encodeURIComponent(fileId)}`;
+const downloadUrlFor = (fileId) => `http://localhost:3000/api/download?file_id=${encodeURIComponent(fileId)}`;
+
 const generarPropuesta = (id) => {
   console.log(`Iniciando agente AI para licitación: ${id}`);
   // Aquí llamarías a tu proceso de OpenClaw o LangChain
 };
 
 // --- PROPIEDADES COMPUTADAS (Computed) ---
+const normalizeDate = (value) => {
+  if (!value) return "";
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+  const str = String(value).trim();
+  if (!str) return "";
+  const iso = str.match(/\d{4}-\d{2}-\d{2}/);
+  if (iso) return iso[0];
+  const dmy = str.match(/(\d{2})[\/.-](\d{2})[\/.-](\d{4})/);
+  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+  const parsed = new Date(str);
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+  return "";
+};
+
 const licitacionesFiltradas = computed(() => {
-  if (!searchQuery.value) return licitaciones.value;
-  return licitaciones.value.filter(l => 
-    l.objeto.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    l.expediente.toLowerCase().includes(searchQuery.value.toLowerCase())
-  );
+  const query = search.value.trim().toLowerCase();
+  const selectedDate = dateFilter.value;
+  if (!query && !selectedDate) return licitaciones.value;
+
+  const keywords = query.split(/\s+/).filter(Boolean);
+  return licitaciones.value.filter((l) => {
+    const haystack = [
+      l.objeto,
+      l.objeto_cont,
+      l.expediente,
+      l.lugar_ejecucion,
+      l.importe,
+      l.fecha_fin_po,
+    ]
+      .filter(Boolean)
+      .map((v) => String(v).toLowerCase())
+      .join(" ");
+
+    const matchesKeywords = keywords.length === 0 || keywords.every((k) => haystack.includes(k));
+    const fecha = normalizeDate(l.fecha_fin_po);
+    const matchesDate = !selectedDate || fecha === selectedDate;
+    return matchesKeywords && matchesDate;
+  });
 });
 
 // --- HOOKS (Antes created/mounted) ---
@@ -99,46 +136,49 @@ const requests = ref(
 );
 
 
-const search = ref('');
-const genreFilter = ref('');
+const dateFilter = ref('');
 const isDark = ref(false);
-
-const genres = computed(() => {
-  const all = requests.value.map(r => r.genre);
-  return [...new Set(all)];
-});
 
 const filteredRequests = computed(() => {
   return requests.value.filter(r => {
     const matchesTitle = r.title.toLowerCase().includes(search.value.toLowerCase());
-    const matchesGenre = !genreFilter.value || r.genre === genreFilter.value;
-    return matchesTitle && matchesGenre;
+    return matchesTitle;
   });
 });
 
-// --- GENERATE BUTTON LOGIC FOR FIRST CARD ONLY ---
-import { onMounted } from 'vue';
-const showGeneratedText = ref(false);
-const displayedText = ref("");
-const text = `Fixed-price public contract (€157,337.86 excl. VAT) for full creativity, design, and production of a national campaign, to be executed in 40 calendar days, with single payment after completion, no price revision, and a 5% performance guarantee required.
+// --- GENERATE BUTTON LOGIC (PER CARD) ---
+const summaryById = ref({});
+const generatingById = ref({});
+const speedMs = 0;
+
+const demoText = `Fixed-price public contract (€157,337.86 excl. VAT) for full creativity, design, and production of a national campaign, to be executed in 40 calendar days, with single payment after completion, no price revision, and a 5% performance guarantee required.
 Scope is broad and complex: multiple creative proposals (TV, radio, digital, social, print, merchandising), detailed technical deliverables, competitive scoring weighted 60% on subjective quality, and extensive administrative compliance, creating high upfront workload and execution risk within a short timeframe.
-Overall assessment: financially acceptable only for well-resourced agencies; tight schedule, deferred payment, no price adjustment, and high creative demands reduce margin flexibility and increase risk, making the contract demanding relative to its budget and execution period.`;/*Two or three phrases of 30 or 40 word resume containing only the most relevant professional information. Without redundancy. No assumptions. Bullet points only.`;*/
-const speedMs = 40;
-let i = 0;
-function handleGenerateClick() {
-  showGeneratedText.value = true;
-  displayedText.value = "";
-  i = 0;
+Overall assessment: financially acceptable only for well-resourced agencies; tight schedule, deferred payment, no price adjustment, and high creative demands reduce margin flexibility and increase risk, making the contract demanding relative to its budget and execution period.`;
+
+const getRequestId = (request, idx) => {
+  if (request && request.id !== undefined && request.id !== null && String(request.id).trim() !== "") {
+    return String(request.id);
+  }
+  if (request && request.expediente) return `expediente:${request.expediente}`;
+  if (request && request.url) return `url:${request.url}`;
+  return `row:${idx}`;
+};
+
+function handleGenerateClick(requestId) {
+  generatingById.value = { ...generatingById.value, [requestId]: true };
+  summaryById.value = { ...summaryById.value, [requestId]: "" };
+  let i = 0;
   const tick = () => {
-    displayedText.value = text.slice(0, i);
+    summaryById.value = { ...summaryById.value, [requestId]: demoText.slice(0, i) };
     i++;
-    if (i <= text.length) {
+    if (i <= demoText.length) {
       setTimeout(tick, speedMs);
+    } else {
+      generatingById.value = { ...generatingById.value, [requestId]: false };
     }
   };
   tick();
-}
-</script>
+}</script>
 
 <template>
   <div :class="['page-wrapper', isDark ? 'dark-mode' : '']">
@@ -176,11 +216,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     <div class="main-scrollable">
       <!-- Filters sticky at the top, left-aligned -->
       <section class="filters filters-bar mt-[50px] lg:mt-[5px]">
-        <input v-model="search" type="text" placeholder="Search by title..." class="filter-input" />
-        <select v-model="genreFilter" class="filter-select">
-          <option value="">All genres</option>
-          <option v-for="g in genres" :key="g" :value="g">{{ g }}</option>
-        </select>
+        <input v-model="search" type="text" placeholder="Search by keywords..." class="filter-input" />
+        <input v-model="dateFilter" type="date" class="filter-select" />
       </section>
 
       <!-- Requests list -->
@@ -189,7 +226,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
           No requests found.
         </div>
         <div v-else class="request-list">
-          <div v-for="(request, idx) in licitacionesFiltradas" :key="request.id" class="request-card neumorph-card">
+          <div v-for="(request, idx) in licitacionesFiltradas" :key="getRequestId(request, idx)" class="request-card neumorph-card">
             <div class="request-card-content">
               <div class="request-main-info">
                 <h2>{{ request.objeto_cont }}</h2>
@@ -199,12 +236,36 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 <div><strong>Price:</strong> {{ request.importe }}</div>
                 <div><strong>Place:</strong> {{ request.lugar_ejecucion }}</div>
                 <div><strong>Deadline:</strong> {{ request.fecha_fin_po }}</div>
-                <div><strong>PDF:</strong> <a :href="request.url" target="_blank">{{ request.url }}</a>
+                <div><strong>URL:</strong> <a :href="request.url" target="_blank" rel="noopener">Licitacion</a></div>
+                <div v-if="request.archivos_principales && request.archivos_principales.length">
+                  <strong>Archivos:</strong>
+                  <span class="file-links" v-for="archivo in request.archivos_principales" :key="archivo.telegram_file_id">
+                    <a
+                      :href="streamUrlFor(archivo.telegram_file_id)"
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      Ver {{ archivo.etiqueta }}
+                    </a>
+                    <a
+                      class="download-btn"
+                      :href="downloadUrlFor(archivo.telegram_file_id)"
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      Download
+                    </a>
+                  </span>
                 </div>
-                <div v-if="idx === 0" style="min-width:220px;">
-                  <button v-if="!showGeneratedText" class="uiverse" @click="handleGenerateClick">
+                <div style="min-width:220px;">
+                  <!-- <button class="boutondegael" v-if="!showGeneratedText" style="width:165px; border-radius:25px;"@click="handleGenerateClick">RESUME</button> -->
+                  <button
+                    v-if="!summaryById[getRequestId(request, idx)] && !generatingById[getRequestId(request, idx)]"
+                    class="uiverse"
+                    @click="handleGenerateClick(getRequestId(request, idx))"
+                  >
                     <div class="wrapper">
-                      <span>GENERATE</span>
+                      <span>RESUME PDF</span>
                       <div class="circle circle-12"></div>
                       <div class="circle circle-11"></div>
                       <div class="circle circle-10"></div>
@@ -219,7 +280,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                       <div class="circle circle-1"></div>
                     </div>
                   </button>
-                  <div v-else class="generated-text-area whitespace-pre-wrap">{{ displayedText }}</div>
+                  <div v-else class="generated-text-area whitespace-pre-wrap">
+                    {{ summaryById[getRequestId(request, idx)] }}
+                  </div>
                 <!--Copyright - 2026 Ashon-G (Vashon Gonzales) 
 Copyright - 2026 adamgiebl (Adam Giebl) 
 
@@ -247,6 +310,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   background: linear-gradient(120deg, #e0e7ef 0%, #f4f6fa 100%);
   position: relative;
   overflow-x: hidden;
+  border-radius: 15px;
+  background: #e0e0e0;
+  box-shadow:  32px 32px 64px #5a5a5a,
+             -32px -32px 64px #ffffff;
 }
 
 .header {
@@ -427,7 +494,7 @@ h1 {
 
 .request-main-info h2 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: #222;
 }
@@ -459,6 +526,20 @@ h1 {
   text-decoration: underline;
   font-weight: 500;
 }
+
+.file-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: 0.5rem;
+}
+
+a.download-btn {
+    text-decoration: none; /* Supprime le soulignement */
+    color: inherit;       /* Utilise la couleur du texte environnant */
+}
+
+
 
 .no-results {
   text-align: center;
@@ -659,6 +740,11 @@ h1 {
   color: #e0e0e0;
 }
 
+.dark-mode .download-btn {
+  border-color: #e0e0e0;
+  color: #e0e0e0;
+}
+
 .dark-mode .request-card {
   background: #202020;
   box-shadow: 4px 4px 12px #0f0f0f, -4px -4px 12px #2a2a2a;
@@ -677,6 +763,35 @@ h1 {
   color: #f0f0f0;
   box-shadow: inset 7px 7px 19px #0f0f0f, inset -7px -7px 19px #2a2a2a;
 }
+
+/* .boutondegael{
+  background-color: #311C3B;
+  width: 100px;
+  height: 50px;
+  color: rgb(255, 255, 255);
+  transition: 0.5s;
+  font-family: Helvetica;
+}
+
+.boutondegael:hover{
+  background-color: #c4c4c4;
+  color: black;
+}
+
+.dark-mode .boutondegael{
+  background-color: #fdfdfd;
+  width: 100px;
+  height: 50px;
+  color: rgb(0, 0, 0);
+  transition: 0.5s;
+}
+
+.dark-mode .boutondegael:hover{
+  background-color: #311C3B;
+  width: 100px;
+  height: 50px;
+  color: rgb(0, 0, 0);
+} */
 
 .uiverse {
   --duration: 5s;
@@ -753,6 +868,7 @@ h1 {
   display: inline-block;
   position: relative;
   z-index: 1;
+  font-family : ;
 }
 
 .uiverse:hover {
@@ -787,7 +903,7 @@ h1 {
 .uiverse .wrapper .circle.circle-5,
 .uiverse .wrapper .circle.circle-6 {
   --background: var(--c-color-3);
-  --blur: 16px;
+  --blur: 100px;
 }
 
 .uiverse .wrapper .circle.circle-2,
@@ -1019,3 +1135,4 @@ onMounted(() => {
 
 
 </script>
+
