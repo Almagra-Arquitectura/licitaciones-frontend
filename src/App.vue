@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 // To git push
 //git add .
@@ -22,6 +22,7 @@ const obtenerDatos = async (targetPage = pagination.value.currentPage) => {
       params: {
         page: targetPage,
         limit: pagination.value.pageSize,
+        search: search.value.trim() || undefined,
       },
     });
     console.log('Datos obtenidos:', data);
@@ -71,30 +72,22 @@ const normalizeDate = (value) => {
   return "";
 };
 
-const licitacionesFiltradas = computed(() => {
-  const query = search.value.trim().toLowerCase();
-  const selectedDate = dateFilter.value;
-  if (!query && !selectedDate) return licitaciones.value;
+const licitacionesFiltradas = computed(() => licitaciones.value);
 
-  const keywords = query.split(/\s+/).filter(Boolean);
-  return licitaciones.value.filter((l) => {
-    const haystack = [
-      l.objeto,
-      l.objeto_cont,
-      l.expediente,
-      l.lugar_ejecucion,
-      l.importe,
-      l.fecha_fin_po,
-    ]
-      .filter(Boolean)
-      .map((v) => String(v).toLowerCase())
-      .join(" ");
+const debounce = (fn, wait = 400) => {
+  let t = null;
+  return (...args) => {
+    if (t) clearTimeout(t);
+    t = setTimeout(() => fn(...args), wait);
+  };
+};
 
-    const matchesKeywords = keywords.length === 0 || keywords.every((k) => haystack.includes(k));
-    const fecha = normalizeDate(l.fecha_fin_po);
-    const matchesDate = !selectedDate || fecha === selectedDate;
-    return matchesKeywords && matchesDate;
-  });
+const debouncedSearch = debounce(() => {
+  obtenerDatos(1);
+}, 400);
+
+watch(search, () => {
+  debouncedSearch();
 });
 
 // --- HOOKS (Antes created/mounted) ---
@@ -152,13 +145,6 @@ const requests = ref(
 
 const dateFilter = ref('');
 const isDark = ref(false);
-
-const filteredRequests = computed(() => {
-  return requests.value.filter(r => {
-    const matchesTitle = r.title.toLowerCase().includes(search.value.toLowerCase());
-    return matchesTitle;
-  });
-});
 
 // --- GENERATE BUTTON LOGIC (PER CARD) ---
 const summaryById = ref({});
