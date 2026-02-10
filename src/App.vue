@@ -18,7 +18,7 @@ const obtenerDatos = async (targetPage = pagination.value.currentPage) => {
   loading.value = true;
   try {
     // Cambia esta URL por la de tu backend
-    const { data } = await axios.get('http://localhost:3000/api/licitaciones', {
+    const { data } = await axios.get('/api/licitaciones', {
       params: {
         page: targetPage,
         limit: pagination.value.pageSize,
@@ -47,8 +47,8 @@ const formatMoneda = (valor) => {
   return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(valor);
 };
 
-const streamUrlFor = (fileId) => `http://localhost:3000/api/stream?file_id=${encodeURIComponent(fileId)}`;
-const downloadUrlFor = (fileId) => `http://localhost:3000/api/download?file_id=${encodeURIComponent(fileId)}`;
+const streamUrlFor = (fileId) => `/api/stream?file_id=${encodeURIComponent(fileId)}`;
+const downloadUrlFor = (fileId) => `/api/download?file_id=${encodeURIComponent(fileId)}`;
 
 const generarPropuesta = (id) => {
   console.log(`Iniciando agente AI para licitación: ${id}`);
