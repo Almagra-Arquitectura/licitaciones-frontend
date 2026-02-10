@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 // To git push
 //git add .
@@ -18,10 +18,11 @@ const obtenerDatos = async (targetPage = pagination.value.currentPage) => {
   loading.value = true;
   try {
     // Cambia esta URL por la de tu backend
-    const { data } = await axios.get('http://localhost:3000/api/licitaciones', {
+    const { data } = await axios.get('/api/licitaciones', {
       params: {
         page: targetPage,
         limit: pagination.value.pageSize,
+        search: search.value.trim() || undefined,
       },
     });
     console.log('Datos obtenidos:', data);
@@ -46,8 +47,8 @@ const formatMoneda = (valor) => {
   return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(valor);
 };
 
-const streamUrlFor = (fileId) => `http://localhost:3000/api/stream?file_id=${encodeURIComponent(fileId)}`;
-const downloadUrlFor = (fileId) => `http://localhost:3000/api/download?file_id=${encodeURIComponent(fileId)}`;
+const streamUrlFor = (fileId) => `/api/stream?file_id=${encodeURIComponent(fileId)}`;
+const downloadUrlFor = (fileId) => `/api/download?file_id=${encodeURIComponent(fileId)}`;
 
 const generarPropuesta = (id) => {
   console.log(`Iniciando agente AI para licitación: ${id}`);
@@ -71,30 +72,22 @@ const normalizeDate = (value) => {
   return "";
 };
 
-const licitacionesFiltradas = computed(() => {
-  const query = search.value.trim().toLowerCase();
-  const selectedDate = dateFilter.value;
-  if (!query && !selectedDate) return licitaciones.value;
+const licitacionesFiltradas = computed(() => licitaciones.value);
 
-  const keywords = query.split(/\s+/).filter(Boolean);
-  return licitaciones.value.filter((l) => {
-    const haystack = [
-      l.objeto,
-      l.objeto_cont,
-      l.expediente,
-      l.lugar_ejecucion,
-      l.importe,
-      l.fecha_fin_po,
-    ]
-      .filter(Boolean)
-      .map((v) => String(v).toLowerCase())
-      .join(" ");
+const debounce = (fn, wait = 400) => {
+  let t = null;
+  return (...args) => {
+    if (t) clearTimeout(t);
+    t = setTimeout(() => fn(...args), wait);
+  };
+};
 
-    const matchesKeywords = keywords.length === 0 || keywords.every((k) => haystack.includes(k));
-    const fecha = normalizeDate(l.fecha_fin_po);
-    const matchesDate = !selectedDate || fecha === selectedDate;
-    return matchesKeywords && matchesDate;
-  });
+const debouncedSearch = debounce(() => {
+  obtenerDatos(1);
+}, 400);
+
+watch(search, () => {
+  debouncedSearch();
 });
 
 // --- HOOKS (Antes created/mounted) ---
@@ -152,13 +145,6 @@ const requests = ref(
 
 const dateFilter = ref('');
 const isDark = ref(false);
-
-const filteredRequests = computed(() => {
-  return requests.value.filter(r => {
-    const matchesTitle = r.title.toLowerCase().includes(search.value.toLowerCase());
-    return matchesTitle;
-  });
-});
 
 // --- GENERATE BUTTON LOGIC (PER CARD) ---
 const summaryById = ref({});
@@ -231,7 +217,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       <!-- Filters sticky at the top, left-aligned -->
       <section class="filters filters-bar mt-[50px] lg:mt-[5px]">
         <input v-model="search" type="text" placeholder="Search by keywords..." class="filter-input" />
-        <input v-model="dateFilter" type="date" class="filter-select" />
+        <!-- <input v-model="dateFilter" type="date" class="filter-select" /> -->
       </section>
 
       <!-- Requests list -->

@@ -14,30 +14,45 @@ let clientPromise = client.connect();
 export default async function handler(req, res) {
   try {
     const connectedClient = await clientPromise;
-    const db = connectedClient.db('licitaciones_db'); 
-    const coleccion = db.collection('licitaciones'); 
+    const db = connectedClient.db('licitaciones_db');
+    const coleccion = db.collection('licitaciones');
 
-    // 1. Obtener parámetros de la query con valores por defecto
-    // Usamos parseInt para asegurar que sean números
+    const escapeRegExp = (value) =>
+      String(value).replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
+
+    // 1. Obtener par�metros de la query con valores por defecto
+    // Usamos parseInt para asegurar que sean n�meros
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const search = req.query.search || '';
-    const query1 = search ? { objeto_cont: { $regex: search, $options: 'i' } } : {};
+    const search = (req.query.search || '').trim();
 
-    // 2. Calcular cuántos documentos saltar
+    const query1 = search
+      ? {
+          $or: [
+            { objeto_cont: { $regex: escapeRegExp(search), $options: 'i' } },
+            { expediente: { $regex: escapeRegExp(search), $options: 'i' } },
+            { lugar_ejecucion: { $regex: escapeRegExp(search), $options: 'i' } },
+            //{ importe: { $regex: escapeRegExp(search), $options: 'i' } },
+            //{ fecha_fin_po: { $regex: escapeRegExp(search), $options: 'i' } },
+            //{ f_publicacion: { $regex: escapeRegExp(search), $options: 'i' } },
+          ],
+        }
+      : {};
+
+    // 2. Calcular cu�ntos documentos saltar
     const skip = (page - 1) * limit;
 
     // 3. Ejecutar la consulta con skip y limit
-    // countDocuments nos ayuda a saber el total para la paginación frontal
-    const totalLicitaciones = await coleccion.countDocuments({});
-    
+    // countDocuments nos ayuda a saber el total para la paginaci�n frontal
+    const totalLicitaciones = await coleccion.countDocuments(query1);
+
     const licitaciones = await coleccion
       .find(query1)
       .sort({ f_publicacion: -1 }) // Ordenar por los más recientes
       .skip(skip)
       .limit(limit)
       .toArray();
-
+      
     // Mapeamos los resultados para formatear la fecha antes de enviarlos
     const respuesta = licitaciones.map(lic => ({
       ...lic,
@@ -45,6 +60,7 @@ export default async function handler(req, res) {
     }));
 
     // 4. Responder con los datos y la información de paginación
+
     res.status(200).json({
       info: {
         total: totalLicitaciones,
@@ -57,9 +73,9 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("Error detallado:", error);
-    res.status(500).json({ 
-      error: "Error en el servidor", 
-      details: error.message 
+    res.status(500).json({
+      error: "Error en el servidor",
+      details: error.message
     });
   }
 }
