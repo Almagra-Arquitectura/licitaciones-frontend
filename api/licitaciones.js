@@ -33,10 +33,16 @@ export default async function handler(req, res) {
     
     const licitaciones = await coleccion
       .find(query1)
-      .sort({ _id: -1 }) // Ordenar por los más recientes
+      .sort({ f_publicacion: -1 }) // Ordenar por los más recientes
       .skip(skip)
       .limit(limit)
       .toArray();
+
+    // Mapeamos los resultados para formatear la fecha antes de enviarlos
+    const respuesta = licitaciones.map(lic => ({
+      ...lic,
+      f_publicacion: new Date(lic.f_publicacion).toLocaleString('es-ES')
+    }));
 
     // 4. Responder con los datos y la información de paginación
     res.status(200).json({
@@ -46,7 +52,7 @@ export default async function handler(req, res) {
         currentPage: page,
         pageSize: limit
       },
-      results: licitaciones
+      results: respuesta
     });
 
   } catch (error) {
