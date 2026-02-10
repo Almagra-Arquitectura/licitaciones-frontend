@@ -217,7 +217,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       <!-- Filters sticky at the top, left-aligned -->
       <section class="filters filters-bar mt-[50px] lg:mt-[5px]">
         <input v-model="search" type="text" placeholder="Search by keywords..." class="filter-input" />
-        <input v-model="dateFilter" type="date" class="filter-select" />
+        <!-- <input v-model="dateFilter" type="date" class="filter-select" /> -->
       </section>
 
       <!-- Requests list -->

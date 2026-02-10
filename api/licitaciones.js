@@ -20,8 +20,8 @@ export default async function handler(req, res) {
     const escapeRegExp = (value) =>
       String(value).replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
 
-    // 1. Obtener parámetros de la query con valores por defecto
-    // Usamos parseInt para asegurar que sean números
+    // 1. Obtener parï¿½metros de la query con valores por defecto
+    // Usamos parseInt para asegurar que sean nï¿½meros
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const search = (req.query.search || '').trim();
@@ -29,32 +29,31 @@ export default async function handler(req, res) {
     const query1 = search
       ? {
           $or: [
-            { objeto: { $regex: escapeRegExp(search), $options: 'i' } },
             { objeto_cont: { $regex: escapeRegExp(search), $options: 'i' } },
             { expediente: { $regex: escapeRegExp(search), $options: 'i' } },
             { lugar_ejecucion: { $regex: escapeRegExp(search), $options: 'i' } },
-            { importe: { $regex: escapeRegExp(search), $options: 'i' } },
-            { fecha_fin_po: { $regex: escapeRegExp(search), $options: 'i' } },
-            { f_publicacion: { $regex: escapeRegExp(search), $options: 'i' } },
+            //{ importe: { $regex: escapeRegExp(search), $options: 'i' } },
+            //{ fecha_fin_po: { $regex: escapeRegExp(search), $options: 'i' } },
+            //{ f_publicacion: { $regex: escapeRegExp(search), $options: 'i' } },
           ],
         }
       : {};
 
-    // 2. Calcular cuántos documentos saltar
+    // 2. Calcular cuï¿½ntos documentos saltar
     const skip = (page - 1) * limit;
 
     // 3. Ejecutar la consulta con skip y limit
-    // countDocuments nos ayuda a saber el total para la paginación frontal
+    // countDocuments nos ayuda a saber el total para la paginaciï¿½n frontal
     const totalLicitaciones = await coleccion.countDocuments(query1);
 
     const licitaciones = await coleccion
       .find(query1)
-      .sort({ _id: -1 }) // Ordenar por los más recientes
+      .sort({ _id: -1 }) // Ordenar por los mï¿½s recientes
       .skip(skip)
       .limit(limit)
       .toArray();
 
-    // 4. Responder con los datos y la información de paginación
+    // 4. Responder con los datos y la informaciï¿½n de paginaciï¿½n
     res.status(200).json({
       info: {
         total: totalLicitaciones,
