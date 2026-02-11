@@ -101,47 +101,6 @@ onMounted(() => {
   console.log("Componente montado en el DOM.");
   obtenerDatos();
 });
-// Generate 100 mock requests
-const genresList = ['Poster', 'Logo', 'Web', 'UI', 'UX', 'Branding', 'Print', 'Social', 'Packaging'];
-const payments = ['On delivery', '50% upfront', 'Monthly', 'Full payment', 'After approval'];
-
-function generateRealisticPrice() {
-  // Distribution biaisée vers les petits montants
-  const r = Math.random();
-  let price;
-
-  if (r < 0.6) {
-    // petits projets
-    price = Math.random() * 5000;
-  } else if (r < 0.9) {
-    // projets moyens
-    price = 5000 + Math.random() * 45000;
-  } else {
-    // gros projets
-    price = 50000 + Math.random() * 300000;
-  }
-
-  // arrondi réaliste
-  return `${Math.round(price / 50) * 50}€`;
-}
-
-const requests = ref(
-  Array.from({ length: 100 }, (_, i) => {
-    const genre = genresList[i % genresList.length];
-    const payment = payments[i % payments.length];
-
-    return {
-      id: i + 1,
-      title: `Request ${i + 1} - ${genre}`,
-      price: generateRealisticPrice(),
-      payment,
-      deadline: `2026-02-${String((i % 28) + 1).padStart(2, '0')}`,
-      pdf: `request_${i + 1}.pdf`,
-      genre,
-    };
-  })
-);
-
 
 const dateFilter = ref('');
 const isDark = ref(false);
@@ -193,8 +152,10 @@ function handleGenerateClick(requestId) {
           <h1>Sokorro Public Design Requests</h1>
           <p class="subtitle">Find and explore the latest public design requests, filtered by AI.</p>
         </div>
+        <input v-model="search" type="text" placeholder="Search by keywords..."
+          class="filter-input header-search-input" />
         <div class="theme-toggle">
-          <!-- From Uiverse.io by artginzburg --> 
+          <!-- From Uiverse.io by artginzburg -->
           <label class="switch">
             <input v-model="isDark" class="checkbox" type="checkbox" />
             <span class="slider"></span>
@@ -214,77 +175,80 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
     <!-- Everything else scrolls -->
     <div class="main-scrollable">
-      <!-- Filters sticky at the top, left-aligned -->
-      <section class="filters filters-bar mt-[50px] lg:mt-[5px]">
+      <!-- Mobile search under header -->
+      <section class="filters filters-bar mobile-search-section mt-[50px] lg:mt-[5px]">
         <input v-model="search" type="text" placeholder="Search by keywords..." class="filter-input" />
-        <!-- <input v-model="dateFilter" type="date" class="filter-select" /> -->
       </section>
 
       <!-- Requests list -->
-      <main class="container mt-[120px] lg:mt-[40px]">
+      <main class="container mt-[40px] lg:mt-[0px]">
         <div v-if="licitacionesFiltradas.length === 0" class="no-results">
           No requests found.
         </div>
         <div v-else class="request-list">
-          <div v-for="(request, idx) in licitacionesFiltradas" :key="getRequestId(request, idx)" class="request-card neumorph-card">
+          <div v-for="(request, idx) in licitacionesFiltradas" :key="getRequestId(request, idx)"
+            class="request-card neumorph-card mb-4">
             <div class="request-card-content">
-              <div class="request-main-info">
+              <div class="request-col request-col-main">
                 <h2>{{ request.objeto_cont }}</h2>
-                <div class="request-genre">{{ request.expediente }}</div>
-              </div>
-              <div class="request-details">
-                <div><strong>Price:</strong> {{ request.importe }}</div>
-                <div><strong>Place:</strong> {{ request.lugar_ejecucion }}</div>
-                <div><strong>Published:</strong> {{ request.f_publicacion }}</div>
-                <div><strong>Deadline:</strong> {{ request.fecha_fin_po }}</div>
-                <div><strong>URL:</strong> <a :href="request.url" target="_blank" rel="noopener">Licitacion</a></div>
-                <div v-if="request.archivos_principales && request.archivos_principales.length">
-                  <strong>Archivos:</strong>
-                  <span class="file-links" v-for="archivo in request.archivos_principales" :key="archivo.telegram_file_id">
-                    <a
-                      :href="streamUrlFor(archivo.telegram_file_id)"
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      Ver {{ archivo.etiqueta }}
-                    </a>
-                    <a
-                      class="download-btn"
-                      :href="downloadUrlFor(archivo.telegram_file_id)"
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      Download
-                    </a>
-                  </span>
-                </div>
-                <div style="min-width:220px;">
-                  <!-- <button class="boutondegael" v-if="!showGeneratedText" style="width:165px; border-radius:25px;"@click="handleGenerateClick">RESUME</button> -->
-                  <button
-                    v-if="!summaryById[getRequestId(request, idx)] && !generatingById[getRequestId(request, idx)]"
-                    class="uiverse"
-                    @click="handleGenerateClick(getRequestId(request, idx))"
-                  >
-                    <div class="wrapper">
-                      <span>RESUME PDF</span>
-                      <div class="circle circle-12"></div>
-                      <div class="circle circle-11"></div>
-                      <div class="circle circle-10"></div>
-                      <div class="circle circle-9"></div>
-                      <div class="circle circle-8"></div>
-                      <div class="circle circle-7"></div>
-                      <div class="circle circle-6"></div>
-                      <div class="circle circle-5"></div>
-                      <div class="circle circle-4"></div>
-                      <div class="circle circle-3"></div>
-                      <div class="circle circle-2"></div>
-                      <div class="circle circle-1"></div>
+                <div class="request-card-footer">
+                  <div class="request-genre">{{ request.expediente }}</div>
+                  <div class="request-action">
+                    <!-- <button class="boutondegael" v-if="!showGeneratedText" style="width:165px; border-radius:25px;"@click="handleGenerateClick">RESUME</button> -->
+                    <button
+                      v-if="!summaryById[getRequestId(request, idx)] && !generatingById[getRequestId(request, idx)]"
+                      class="uiverse" @click="handleGenerateClick(getRequestId(request, idx))">
+                      <div class="wrapper">
+                        <span>RESUME PDF</span>
+                        <div class="circle circle-12"></div>
+                        <div class="circle circle-11"></div>
+                        <div class="circle circle-10"></div>
+                        <div class="circle circle-9"></div>
+                        <div class="circle circle-8"></div>
+                        <div class="circle circle-7"></div>
+                        <div class="circle circle-6"></div>
+                        <div class="circle circle-5"></div>
+                        <div class="circle circle-4"></div>
+                        <div class="circle circle-3"></div>
+                        <div class="circle circle-2"></div>
+                        <div class="circle circle-1"></div>
+                      </div>
+                    </button>
+                    <div v-else class="generated-text-area whitespace-pre-wrap">
+                      {{ summaryById[getRequestId(request, idx)] }}
                     </div>
-                  </button>
-                  <div v-else class="generated-text-area whitespace-pre-wrap">
-                    {{ summaryById[getRequestId(request, idx)] }}
                   </div>
-                <!--Copyright - 2026 Ashon-G (Vashon Gonzales) 
+                </div>
+              </div>
+
+              <div class="request-col request-col-meta">
+                <div class="meta-row"><strong>Price:</strong><span>{{ request.importe }}</span></div>
+                <div class="meta-row"><strong>Published:</strong><span>{{ request.f_publicacion }}</span></div>
+                <div class="meta-row"><strong>Deadline:</strong><span>{{ request.fecha_fin_po }}</span></div>
+                <div class="meta-row"><strong>Place:</strong><span>{{ request.lugar_ejecucion }}</span></div>
+              </div>
+
+              <div class="request-col request-col-links">
+                <div class="meta-row">
+                  <strong>URL:</strong>
+                  <a :href="request.url" target="_blank" rel="noopener">Licitacion</a>
+                </div>
+                <div v-if="request.archivos_principales && request.archivos_principales.length" class="files-block">
+                  <div class="file-list">
+                    <div class="file-items" v-for="archivo in request.archivos_principales"
+                      :key="archivo.telegram_file_id">
+
+                      <a class=" items-center rounded-md bg-indigo-50 px-2 py-1 text-sm font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10"
+                        :href="streamUrlFor(archivo.telegram_file_id)" target="_blank" rel="noopener">
+                        {{ archivo.etiqueta?.replace(/_/g, ' ') || 'Sans nom' }}
+                      </a>
+                      <a class="download-btn inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-sm font-medium text-red-700 inset-ring inset-ring-red-600/10"
+                        :href="downloadUrlFor(archivo.telegram_file_id)" target="_blank" rel="noopener">
+                        Download
+                      </a>
+                    </div>
+                  </div>
+                  <!--Copyright - 2026 Ashon-G (Vashon Gonzales) 
 Copyright - 2026 adamgiebl (Adam Giebl) 
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
@@ -299,21 +263,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
           </div>
         </div>
         <div v-if="licitacionesFiltradas.length > 0" class="pagination">
-          <button
-            class="pagination-btn"
-            :disabled="loading || pagination.currentPage <= 1"
-            @click="goToPage(pagination.currentPage - 1)"
-          >
+          <button class="pagination-btn" :disabled="loading || pagination.currentPage <= 1"
+            @click="goToPage(pagination.currentPage - 1)">
             Previous
           </button>
           <div class="pagination-info">
             Page {{ pagination.currentPage }} / {{ pagination.pages }} • {{ pagination.total }} total
           </div>
-          <button
-            class="pagination-btn"
-            :disabled="loading || pagination.currentPage >= pagination.pages"
-            @click="goToPage(pagination.currentPage + 1)"
-          >
+          <button class="pagination-btn" :disabled="loading || pagination.currentPage >= pagination.pages"
+            @click="goToPage(pagination.currentPage + 1)">
             Next
           </button>
         </div>
@@ -332,8 +290,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   overflow-x: hidden;
   border-radius: 15px;
   background: #e0e0e0;
-  box-shadow:  32px 32px 64px #5a5a5a,
-             -32px -32px 64px #ffffff;
+  box-shadow: 32px 32px 64px #5a5a5a,
+    -32px -32px 64px #ffffff;
 }
 
 .header {
@@ -434,14 +392,14 @@ h1 {
   border: none;
   font-size: 1rem;
   background: #f4f6fa;
-  box-shadow: 2px 2px 8px #e3e9f1, -2px -2px 8px #fff;
+  box-shadow: 2px 2px 8px #969aa0, -2px -2px 8px #fff;
   outline: none;
   transition: box-shadow 0.2s;
 }
 
 .filter-input:focus,
 .filter-select:focus {
-  box-shadow: 0 0 0 2px #00b4d8;
+  box-shadow: 2px 2px 8px #060707, -2px -2px 8px #fff;
 }
 
 .summary-blur {
@@ -464,7 +422,7 @@ h1 {
   width: 100%;
   max-width: 1100%;
   flex: 1;
-  padding: 0 0.5rem;
+  padding: 0 8rem;
   box-sizing: border-box;
 }
 
@@ -491,72 +449,124 @@ h1 {
 }
 
 .neumorph-card:hover {
-  box-shadow: 0 8px 32px 0 #b0c4de, 0 1.5px 8px 0 #fff;
+  box-shadow: 0 1px 32px 0 #b0c4de, 0 0.001px 8px 0 #fff;
   transform: translateY(-2px) scale(1.01);
 }
 
 .request-card-content {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(280px, 1.7fr) minmax(250px, 1.2fr) minmax(240px, 1fr);
+  align-items: start;
   width: 100%;
-  padding: 0.7rem 1rem;
-  gap: 1rem;
+  padding: 0.85rem 1rem;
+  gap: 1.3rem;
 }
 
-.request-main-info {
-  flex: 2;
+.request-col {
+  min-width: 0;
+}
+
+.request-col-main {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
+  padding-right: 1rem;
 }
 
-.request-main-info h2 {
+.request-col-main h2 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #222;
+  line-height: 1.28;
+}
+
+.request-card-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex-wrap: wrap;
 }
 
 .request-genre {
   font-size: 1.05rem;
   color: #00b4d4;
   font-weight: 600;
-  margin-top: 0.2rem;
 }
 
-.request-details {
-  flex: 4;
+.request-action {
+  margin-left: auto;
+  min-width: 220px;
+  max-width: 100%;
+}
+
+.request-col-meta {
   display: flex;
-  flex-direction: row;
-  gap: 2.5rem;
-  font-size: 1.08rem;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 1.05rem;
   color: #444;
-  flex-wrap: wrap;
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
+  padding-right: 1rem;
 }
 
-.request-details>div {
-  min-width: 140px;
-  margin-bottom: 0.3rem;
+.request-col-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  color: #444;
 }
 
-.request-details a {
+.meta-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  line-height: 1.35;
+}
+
+.meta-row strong {
+  flex: 0 0 auto;
+}
+
+.request-col-meta .meta-row strong {
+  min-width: 88px;
+}
+
+.request-col-links a {
   color: #0078d4;
-  text-decoration: underline;
+
   font-weight: 500;
 }
 
-.file-links {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-left: 0.5rem;
+.files-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.file-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
 }
 
 a.download-btn {
-    text-decoration: none; /* Supprime le soulignement */
-    color: inherit;       /* Utilise la couleur du texte environnant */
+  text-decoration: none;
+  /* Supprime le soulignement */
+  color: inherit;
+  /* Utilise la couleur du texte environnant */
 }
 
 
@@ -610,7 +620,28 @@ a.download-btn {
   word-break: break-word;
 }
 
+@media (max-width: 1180px) {
+  .request-card-content {
+    grid-template-columns: 1.35fr 1fr;
+  }
+
+  .request-col-main,
+  .request-col-meta {
+    border-right: none;
+    padding-right: 0;
+  }
+
+  .request-col-links {
+    grid-column: 1 / -1;
+    border-top: 1px dashed rgba(0, 0, 0, 0.16);
+    padding-top: 0.7rem;
+  }
+}
+
 @media (max-width: 800px) {
+  .main-scrollable {
+    margin-top: 150px;
+  }
 
   .header-content,
   .filters,
@@ -621,15 +652,26 @@ a.download-btn {
   }
 
   .request-card-content {
-    flex-direction: column;
-    align-items: flex-start;
+    grid-template-columns: 1fr;
     gap: 0.7rem;
     padding: 0.7rem 0.5rem;
   }
 
-  .request-details {
-    flex-direction: column;
-    gap: 0.5rem;
+  .request-col-main,
+  .request-col-meta {
+    border-right: none;
+    padding-right: 0;
+  }
+
+  .request-col-links {
+    border-top: 1px dashed rgba(0, 0, 0, 0.14);
+    padding-top: 0.65rem;
+  }
+
+  .request-action {
+    margin-left: 0;
+    min-width: 0;
+    width: 100%;
   }
 
   .summary-blur {
@@ -642,7 +684,7 @@ a.download-btn {
     align-items: stretch;
     gap: 0.5rem;
     padding: 0.5rem 0.5rem;
-    top: 70px;
+    top: 85px;
   }
 
   .filter-input,
@@ -665,6 +707,18 @@ a.download-btn {
   .container {
     padding: 0 0.1rem;
   }
+
+  .header-search-input {
+    display: none;
+  }
+
+  .mobile-search-section {
+    display: flex !important;
+  }
+}
+
+.mobile-search-section {
+  display: none;
 }
 
 /* Hide summary button in offers */
@@ -718,16 +772,13 @@ a.download-btn {
   transition: transform var(--transition-duration);
 }
 
-.checkbox:checked + .slider {
+.checkbox:checked+.slider {
   background-color: #171717;
   box-shadow: inset 2px 5px 10px transparent;
 }
 
-.checkbox:checked + .slider::before {
-  transform: translateX(
-      calc(var(--container-width) - var(--offset) * 2 - var(--width))
-    )
-    rotate(1turn);
+.checkbox:checked+.slider::before {
+  transform: translateX(calc(var(--container-width) - var(--offset) * 2 - var(--width))) rotate(1turn);
 }
 
 .dark-mode {
@@ -773,19 +824,28 @@ a.download-btn {
   box-shadow: 0 0 0 2px #5a5a5a;
 }
 
-.dark-mode .request-main-info h2 {
+.dark-mode .request-col-main h2 {
   color: #f6f6f6;
 }
 
-.dark-mode .request-card-content{
+.dark-mode .request-card-content {
   background-color: #1f1f1f;
+}
+
+.dark-mode .request-col-main,
+.dark-mode .request-col-meta {
+  border-right-color: rgba(255, 255, 255, 0.15);
+}
+
+.dark-mode .request-col-links {
+  border-top-color: rgba(255, 255, 255, 0.2);
 }
 
 .dark-mode .request-genre {
   color: #d0d0d0;
 }
 
-.dark-mode .request-details a {
+.dark-mode .request-col-links a {
   color: #e0e0e0;
 }
 
@@ -884,9 +944,17 @@ a.download-btn {
   background: radial-gradient(circle, var(--c-radial-inner), var(--c-radial-outer) 80%);
   box-shadow: 0 0 14px var(--c-shadow);
 }
+
+.uiverse:focus-visible {
+  outline: 3px solid #000;
+  outline-offset: 3px;
+}
+
+.dark-mode .uiverse:focus-visible {
+  outline-color: #f5f5f5;
+}
 </style>
 <style>
-
 .uiverse:before {
   content: '';
   pointer-events: none;
@@ -927,7 +995,7 @@ a.download-btn {
   display: inline-block;
   position: relative;
   z-index: 1;
-  font-family : ;
+  font-family: ;
 }
 
 .uiverse:hover {
@@ -1194,4 +1262,3 @@ onMounted(() => {
 
 
 </script>
-
