@@ -1,23 +1,126 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
 import axios from 'axios';
-// To git push
-//git add .
-//git commit -m "Second interface"
-//git push
-// --- ESTADO (Antes data()) ---
+
+// --- CONFIGURACIÓN ---
+const HF_BACKEND_URL = "http://localhost:8000";
+// Mapa de estados para usar nombres en lugar de números mágicos
+const STATUS = {
+  PENDING: 1,
+  ANALYZING: 2,
+  COMPLETED: 3,
+  ERROR: 4
+};
+
+// --- ESTADO ---
 const licitaciones = ref([]);
 const pagination = ref({ total: 0, pages: 1, currentPage: 1, pageSize: 10 });
 const loading = ref(false);
 const search = ref('');
+const isDark = ref(false);
 
-// --- LÓGICA / MÉTODOS (Antes methods) ---
+// Almacén de intervalos de polling activos: { [idLicitacion]: intervalId }
+const activePolls = ref({});
 
-// Función para traer datos de tu API de NestJS
+// --- LÓGICA DE IA Y POLLING ---
+
+// 1. Acción del botón: Dispara la IA
+const handleGenerateClick = async (licitacion) => {
+  // Evitar doble clic si ya está analizando
+  if (licitacion.estado_proceso === STATUS.ANALYZING) return;
+
+  try {
+    // a) Actualización Optimista: Cambiamos visualmente a "Analizando" de inmediato
+    actualizarLicitacionLocal(licitacion._id, { estado_proceso: STATUS.ANALYZING });
+
+    // b) Llamada al Backend de Hugging Face
+    const response = await axios.post(`${HF_BACKEND_URL}/procesar-completo/${licitacion._id}`);
+    
+    // c) Si el backend confirma, iniciamos el polling
+    // Nota: Ajusta esto si tu backend devuelve texto "ANALYZING" o número 2.
+    // Aquí asumo que responde confirmando el inicio.
+    iniciarPolling(licitacion._id);
+
+  } catch (err) {
+    console.error("Error al conectar con la IA:", err);
+    actualizarLicitacionLocal(licitacion._id, { estado_proceso: STATUS.ERROR });
+    alert("Error al iniciar el análisis. Revisa la consola.");
+  }
+};
+
+// 2. Función de Polling (Cada 10 segundos)
+const iniciarPolling = (id) => {
+  // Si ya existe un polling para este ID, no creamos otro
+  if (activePolls.value[id]) return;
+
+  console.log(`Iniciando vigilancia para licitación ${id}`);
+
+  const intervalId = setInterval(async () => {
+    // VALIDACIÓN CRÍTICA: ¿La licitación sigue existiendo en la vista actual?
+    // Si el usuario cambió de página, este findIndex dará -1
+    const index = licitaciones.value.findIndex(l => l._id === id);
+
+    if (index === -1) {
+      console.log(`Licitación ${id} ya no está en pantalla. Deteniendo polling.`);
+      detenerPolling(id);
+      return;
+    }
+
+    try {
+      // Consultamos solo ESTA licitación a tu API (NestJS/Vercel)
+      // Ajusta la ruta '/api/licitaciones/' según tu backend real
+      const { data: licitacionActualizada } = await axios.get(`/api/licitaciones/${id}`);
+      console.log()(`Polling ${id}: estado actual ${licitacionActualizada.estado_proceso}`);
+      // Actualizamos solo este registro en el array local
+      licitaciones.value[index] = { 
+        ...licitaciones.value[index], 
+        ...licitacionActualizada 
+      };
+
+      const nuevoEstado = licitacionActualizada.estado_proceso;
+
+      // Si terminó o dio error, dejamos de preguntar
+      if (nuevoEstado === STATUS.COMPLETED || nuevoEstado === STATUS.ERROR) {
+        detenerPolling(id);
+        if (nuevoEstado === STATUS.COMPLETED) {
+            console.log("¡Análisis completado!");
+        }
+      }
+    } catch (error) {
+      console.error(`Error en polling ${id}:`, error);
+      // Opcional: detener polling tras varios errores
+    }
+  }, 10000); // 10 segundos
+
+  // Guardamos el ID del intervalo para poder cancelarlo luego
+  activePolls.value[id] = intervalId;
+};
+
+const detenerPolling = (id) => {
+  if (activePolls.value[id]) {
+    clearInterval(activePolls.value[id]);
+    delete activePolls.value[id];
+  }
+};
+
+// Helper para actualizar el array local sin recargar todo
+const actualizarLicitacionLocal = (id, camposNuevos) => {
+  const index = licitaciones.value.findIndex(l => l._id === id);
+  if (index !== -1) {
+    licitaciones.value[index] = { ...licitaciones.value[index], ...camposNuevos };
+  }
+};
+
+// --- DATA FETCHING (Paginación y búsqueda) ---
+
 const obtenerDatos = async (targetPage = pagination.value.currentPage) => {
   loading.value = true;
+  
+  // LIMPIEZA: Al cambiar de página, limpiamos los pollings anteriores
+  // para no gastar recursos buscando IDs que ya no están visibles.
+  Object.keys(activePolls.value).forEach(id => detenerPolling(id));
+
   try {
-    // Cambia esta URL por la de tu backend
     const { data } = await axios.get('/api/licitaciones', {
       params: {
         page: targetPage,
@@ -25,12 +128,20 @@ const obtenerDatos = async (targetPage = pagination.value.currentPage) => {
         search: search.value.trim() || undefined,
       },
     });
-    console.log('Datos obtenidos:', data);
+    
     licitaciones.value = data.results;
     pagination.value = data.info;
+
+    // Reactivar polling: Si cargamos la página y hay licitaciones en estado "2" (Analyzing),
+    // debemos reanudar su vigilancia automáticamente.
+    licitaciones.value.forEach(lic => {
+      if (lic.estado_proceso === STATUS.ANALYZING) {
+        iniciarPolling(lic._id);
+      }
+    });
+
   } catch (error) {
     console.error('Error al obtener licitaciones:', error);
-    alert('No se pudo conectar con el servidor.');
   } finally {
     loading.value = false;
   }
@@ -43,34 +154,11 @@ const goToPage = (nextPage) => {
   obtenerDatos(safePage);
 };
 
-const formatMoneda = (valor) => {
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(valor);
-};
-
+// --- UTILIDADES ---
+const formatMoneda = (valor) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(valor);
 const streamUrlFor = (fileId) => `/api/stream?file_id=${encodeURIComponent(fileId)}`;
 const downloadUrlFor = (fileId) => `/api/download?file_id=${encodeURIComponent(fileId)}`;
-
-const generarPropuesta = (id) => {
-  console.log(`Iniciando agente AI para licitación: ${id}`);
-  // Aquí llamarías a tu proceso de OpenClaw o LangChain
-};
-
-// --- PROPIEDADES COMPUTADAS (Computed) ---
-const normalizeDate = (value) => {
-  if (!value) return "";
-  if (value instanceof Date && !Number.isNaN(value.getTime())) {
-    return value.toISOString().slice(0, 10);
-  }
-  const str = String(value).trim();
-  if (!str) return "";
-  const iso = str.match(/\d{4}-\d{2}-\d{2}/);
-  if (iso) return iso[0];
-  const dmy = str.match(/(\d{2})[\/.-](\d{2})[\/.-](\d{4})/);
-  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
-  const parsed = new Date(str);
-  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
-  return "";
-};
+const getRequestId = (request, idx) => request._id || `row:${idx}`;
 
 const licitacionesFiltradas = computed(() => licitaciones.value);
 
@@ -82,62 +170,21 @@ const debounce = (fn, wait = 400) => {
   };
 };
 
-const debouncedSearch = debounce(() => {
-  obtenerDatos(1);
-}, 400);
+const debouncedSearch = debounce(() => obtenerDatos(1), 400);
 
-watch(search, () => {
-  debouncedSearch();
-});
+watch(search, () => debouncedSearch());
 
-// --- HOOKS (Antes created/mounted) ---
-
-// En Vue 3.5, lo que quieres que pase al "crearse" el componente
-// simplemente se escribe aquí en la raíz del script.
-console.log("Componente inicializado...");
-
-// Si necesitas que algo pase específicamente cuando el DOM esté listo:
+// --- CICLO DE VIDA ---
 onMounted(() => {
-  console.log("Componente montado en el DOM.");
+  console.log("Componente montado.");
   obtenerDatos();
 });
 
-const dateFilter = ref('');
-const isDark = ref(false);
-
-// --- GENERATE BUTTON LOGIC (PER CARD) ---
-const summaryById = ref({});
-const generatingById = ref({});
-const speedMs = 0;
-
-const demoText = `Fixed-price public contract (€157,337.86 excl. VAT) for full creativity, design, and production of a national campaign, to be executed in 40 calendar days, with single payment after completion, no price revision, and a 5% performance guarantee required.
-Scope is broad and complex: multiple creative proposals (TV, radio, digital, social, print, merchandising), detailed technical deliverables, competitive scoring weighted 60% on subjective quality, and extensive administrative compliance, creating high upfront workload and execution risk within a short timeframe.
-Overall assessment: financially acceptable only for well-resourced agencies; tight schedule, deferred payment, no price adjustment, and high creative demands reduce margin flexibility and increase risk, making the contract demanding relative to its budget and execution period.`;
-
-const getRequestId = (request, idx) => {
-  if (request && request.id !== undefined && request.id !== null && String(request.id).trim() !== "") {
-    return String(request.id);
-  }
-  if (request && request.expediente) return `expediente:${request.expediente}`;
-  if (request && request.url) return `url:${request.url}`;
-  return `row:${idx}`;
-};
-
-function handleGenerateClick(requestId) {
-  generatingById.value = { ...generatingById.value, [requestId]: true };
-  summaryById.value = { ...summaryById.value, [requestId]: "" };
-  let i = 0;
-  const tick = () => {
-    summaryById.value = { ...summaryById.value, [requestId]: demoText.slice(0, i) };
-    i++;
-    if (i <= demoText.length) {
-      setTimeout(tick, speedMs);
-    } else {
-      generatingById.value = { ...generatingById.value, [requestId]: false };
-    }
-  };
-  tick();
-}</script>
+// Importante: Limpiar todos los intervalos si el usuario cierra el componente
+onUnmounted(() => {
+  Object.keys(activePolls.value).forEach(id => detenerPolling(id));
+});
+</script>
 
 <template>
   <div :class="['page-wrapper', isDark ? 'dark-mode' : '']">
@@ -194,12 +241,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 <div class="request-card-footer">
                   <div class="request-genre">{{ request.expediente }}</div>
                   <div class="request-action">
-                    <!-- <button class="boutondegael" v-if="!showGeneratedText" style="width:165px; border-radius:25px;"@click="handleGenerateClick">RESUME</button> -->
                     <button
-                      v-if="!summaryById[getRequestId(request, idx)] && !generatingById[getRequestId(request, idx)]"
-                      class="uiverse" @click="handleGenerateClick(getRequestId(request, idx))">
+                      v-if="!request.estado_proceso || request.estado_proceso === 1 || request.estado_proceso === 4"
+                      class="uiverse" 
+                      @click="handleGenerateClick(request)">
                       <div class="wrapper">
-                        <span>RESUME PDF</span>
+                        <span>{{ request.estado_proceso === 4 ? 'REINTENTAR' : 'RESUME PDF' }}</span>
                         <div class="circle circle-12"></div>
                         <div class="circle circle-11"></div>
                         <div class="circle circle-10"></div>
@@ -214,8 +261,17 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                         <div class="circle circle-1"></div>
                       </div>
                     </button>
-                    <div v-else class="generated-text-area whitespace-pre-wrap">
-                      {{ summaryById[getRequestId(request, idx)] }}
+
+                    <div v-else-if="request.estado_proceso === 2" class="uiverse" style="cursor: wait; opacity: 0.8;">
+                      <div class="wrapper">
+                        <span>ANALIZANDO... ⏳</span>
+                        </div>
+                    </div>
+
+                    <div v-else-if="request.estado_proceso === 3" class="generated-text-area whitespace-pre-wrap">
+                      <strong style="color: #0078d4">Resumen Auditoría:</strong>
+                      <br>
+                      {{ request.analisis_ia?.resumen || "Informe generado. Click para ver detalles." }}
                     </div>
                   </div>
                 </div>
