@@ -109,6 +109,8 @@ const isDark = ref(false);
 const summaryById = ref({});
 const generatingById = ref({});
 const speedMs = 0;
+const expandedById = ref({});
+const hoverById = ref({});
 
 const demoText = `Fixed-price public contract (€157,337.86 excl. VAT) for full creativity, design, and production of a national campaign, to be executed in 40 calendar days, with single payment after completion, no price revision, and a 5% performance guarantee required.
 Scope is broad and complex: multiple creative proposals (TV, radio, digital, social, print, merchandising), detailed technical deliverables, competitive scoring weighted 60% on subjective quality, and extensive administrative compliance, creating high upfront workload and execution risk within a short timeframe.
@@ -137,7 +139,37 @@ function handleGenerateClick(requestId) {
     }
   };
   tick();
-}</script>
+}
+
+const isExpanded = (requestId) => Boolean(expandedById.value[requestId]);
+
+const toggleExpanded = (requestId) => {
+  expandedById.value = {
+    ...expandedById.value,
+    [requestId]: !expandedById.value[requestId],
+  };
+};
+
+const needsExpandToggle = (text, maxLength = 120) => {
+  const value = String(text ?? '').trim();
+  return value.length > maxLength;
+};
+
+const getCollapsedText = (text, maxLength = 120) => {
+  const value = String(text ?? '').trim();
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength).trimEnd()}...`;
+};
+
+const setGifHover = (requestId, isHover) => {
+  hoverById.value = {
+    ...hoverById.value,
+    [requestId]: isHover,
+  };
+};
+
+const gifSrcFor = (requestId) => (hoverById.value[requestId] ? '/hoover_button.gif' : '/button.gif');
+</script>
 
 <template>
   <div :class="['page-wrapper', isDark ? 'dark-mode' : '']">
@@ -190,29 +222,35 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             class="request-card neumorph-card mb-4">
             <div class="request-card-content">
               <div class="request-col request-col-main">
-                <h2>{{ request.objeto_cont }}</h2>
+                <h2 class="request-title">
+                  {{
+                    isExpanded(getRequestId(request, idx))
+                      ? request.objeto_cont
+                      : getCollapsedText(request.objeto_cont)
+                  }}
+                  <span
+                    v-if="needsExpandToggle(request.objeto_cont)"
+                    class="expand-toggle"
+                    role="button"
+                    tabindex="0"
+                    @click="toggleExpanded(getRequestId(request, idx))"
+                    @keyup.enter="toggleExpanded(getRequestId(request, idx))"
+                    @keyup.space.prevent="toggleExpanded(getRequestId(request, idx))"
+                  >
+                    {{ isExpanded(getRequestId(request, idx)) ? ' Moins' : ' Plus' }}
+                  </span>
+                </h2>
                 <div class="request-card-footer">
                   <div class="request-genre">{{ request.expediente }}</div>
-                  <div class="request-action">
-                    <!-- <button class="boutondegael" v-if="!showGeneratedText" style="width:165px; border-radius:25px;"@click="handleGenerateClick">RESUME</button> -->
+                  <div class="request-action flex">
                     <button
                       v-if="!summaryById[getRequestId(request, idx)] && !generatingById[getRequestId(request, idx)]"
-                      class="uiverse" @click="handleGenerateClick(getRequestId(request, idx))">
-                      <div class="wrapper">
-                        <span>RESUME PDF</span>
-                        <div class="circle circle-12"></div>
-                        <div class="circle circle-11"></div>
-                        <div class="circle circle-10"></div>
-                        <div class="circle circle-9"></div>
-                        <div class="circle circle-8"></div>
-                        <div class="circle circle-7"></div>
-                        <div class="circle circle-6"></div>
-                        <div class="circle circle-5"></div>
-                        <div class="circle circle-4"></div>
-                        <div class="circle circle-3"></div>
-                        <div class="circle circle-2"></div>
-                        <div class="circle circle-1"></div>
-                      </div>
+                      class="gif_button" @mouseenter="setGifHover(getRequestId(request, idx), true)"
+                      @mouseleave="setGifHover(getRequestId(request, idx), false)"
+                      @focus="setGifHover(getRequestId(request, idx), true)"
+                      @blur="setGifHover(getRequestId(request, idx), false)"
+                      @click="handleGenerateClick(getRequestId(request, idx))">
+                      <img :src="gifSrcFor(getRequestId(request, idx))" alt="Resume PDF" class="gif-img" />
                     </button>
                     <div v-else class="generated-text-area whitespace-pre-wrap">
                       {{ summaryById[getRequestId(request, idx)] }}
@@ -235,16 +273,20 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 </div>
                 <div v-if="request.archivos_principales && request.archivos_principales.length" class="files-block">
                   <div class="file-list">
-                    <div class="file-items" v-for="archivo in request.archivos_principales"
+                    <div class="file-items gap-2 flex" v-for="archivo in request.archivos_principales"
                       :key="archivo.telegram_file_id">
 
-                      <a class=" items-center rounded-md bg-indigo-50 px-2 py-1 text-sm font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10"
+                      <a class="file-badge items-center rounded-md bg-indigo-50 px-2 py-1 text-sm font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10"
                         :href="streamUrlFor(archivo.telegram_file_id)" target="_blank" rel="noopener">
                         {{ archivo.etiqueta?.replace(/_/g, ' ') || 'Sans nom' }}
                       </a>
-                      <a class="download-btn inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-sm font-medium text-red-700 inset-ring inset-ring-red-600/10"
+                      <a class="download-btn download-badge inline-flex rounded-md bg-red-50 px-1.5 py-1 text-sm font-medium text-red-700 inset-ring inset-ring-red-600/10"
                         :href="downloadUrlFor(archivo.telegram_file_id)" target="_blank" rel="noopener">
-                        Download
+                        <svg class="w-4 h-4 text-gray-800 dark:text-dark" aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 18">
+                          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 1v11m0 0 4-4m-4 4L4 8m11 4v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-3" />
+                        </svg>
                       </a>
                     </div>
                   </div>
@@ -269,6 +311,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
           </button>
           <div class="pagination-info">
             Page {{ pagination.currentPage }} / {{ pagination.pages }} • {{ pagination.total }} total
+          </div>
+          <div class="pagination-pages">
+            <button v-for="pageNumber in pagination.pages" :key="pageNumber" class="pagination-btn page-number-btn"
+              :class="{ 'is-active': pageNumber === pagination.currentPage }" :disabled="loading"
+              @click="goToPage(pageNumber)">
+              {{ pageNumber }}
+            </button>
           </div>
           <button class="pagination-btn" :disabled="loading || pagination.currentPage >= pagination.pages"
             @click="goToPage(pagination.currentPage + 1)">
@@ -435,7 +484,7 @@ h1 {
 
 .request-card {
   width: 100%;
-  min-height: 80px;
+  min-height: 10px;
   display: flex;
   align-items: center;
   background: #f4f6fa;
@@ -483,12 +532,24 @@ h1 {
   line-height: 1.28;
 }
 
+.request-title {
+  min-height: 3.3em;
+}
+
+.expand-toggle {
+  display: inline;
+  margin-left: 0.15rem;
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
 .request-card-footer {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.8rem;
-  flex-wrap: wrap;
+  align-items: center;
 }
 
 .request-genre {
@@ -498,9 +559,8 @@ h1 {
 }
 
 .request-action {
-  margin-left: auto;
-  min-width: 220px;
-  max-width: 100%;
+  margin-left: auto; /* pousse Generate à droite */
+  min-width: 0;      /* évite de réserver trop d'espace */
 }
 
 .request-col-meta {
@@ -605,6 +665,24 @@ a.download-btn {
   font-size: 0.95rem;
   color: #555;
   font-weight: 600;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.page-number-btn {
+  min-width: 40px;
+}
+
+.page-number-btn.is-active {
+  background: #0078d4;
+  color: #fff;
+  box-shadow: none;
 }
 
 .generated-text-area {
@@ -828,6 +906,20 @@ a.download-btn {
   color: #f6f6f6;
 }
 
+.dark-mode .expand-toggle {
+  color: #e2e8f0;
+}
+
+.dark-mode .request-col-meta,
+.dark-mode .request-col-links,
+.dark-mode .meta-row span {
+  color: #f0f0f0;
+}
+
+.dark-mode .meta-row strong {
+  color: #ffffff;
+}
+
 .dark-mode .request-card-content {
   background-color: #1f1f1f;
 }
@@ -852,6 +944,22 @@ a.download-btn {
 .dark-mode .download-btn {
   border-color: #e0e0e0;
   color: #e0e0e0;
+}
+
+.dark-mode .file-badge {
+  background-color: #1e293b !important;
+  color: #dbeafe !important;
+  box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.35);
+}
+
+.dark-mode .download-badge {
+  background-color: #3f1d1d !important;
+  color: #fecaca !important;
+  box-shadow: inset 0 0 0 1px rgba(252, 165, 165, 0.4);
+}
+
+.dark-mode .download-badge svg {
+  color: inherit;
 }
 
 .dark-mode .request-card {
@@ -883,356 +991,24 @@ a.download-btn {
   color: #cfcfcf;
 }
 
-/* .boutondegael{
-  background-color: #311C3B;
-  width: 100px;
-  height: 50px;
-  color: rgb(255, 255, 255);
-  transition: 0.5s;
-  font-family: Helvetica;
+.dark-mode .page-number-btn.is-active {
+  background: #f0f0f0;
+  color: #1a1a1a;
 }
 
-.boutondegael:hover{
-  background-color: #c4c4c4;
-  color: black;
-}
-
-.dark-mode .boutondegael{
-  background-color: #fdfdfd;
-  width: 100px;
-  height: 50px;
-  color: rgb(0, 0, 0);
-  transition: 0.5s;
-}
-
-.dark-mode .boutondegael:hover{
-  background-color: #311C3B;
-  width: 100px;
-  height: 50px;
-  color: rgb(0, 0, 0);
-} */
-
-.uiverse {
-  --duration: 5s;
-  --easing: ease-in-out;
-  --c-color-1: #ff6f00;
-  --c-color-2: #1a23ff;
-  --c-color-3: #e21bda;
-  --c-color-4: #ffd800;
-  --c-shadow: rgba(0, 0, 0, 0.2);
-  --c-shadow-inset-top: rgba(0, 0, 0, 0.1);
-  --c-shadow-inset-bottom: rgba(0, 0, 0, 0.1);
-  --c-radial-inner: #ffd215;
-  --c-radial-outer: #fff172;
-  --c-color: #fff;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-appearance: none;
-  outline: none;
-  position: relative;
-  cursor: pointer;
-  border: none;
-  display: table;
-  border-radius: 24px;
-  padding: 0;
-  margin: 0;
-  text-align: center;
-  font-weight: 600;
-  font-size: 16px;
-  letter-spacing: 0.02em;
-  line-height: 1.5;
-  color: var(--c-color);
-  background: radial-gradient(circle, var(--c-radial-inner), var(--c-radial-outer) 80%);
-  box-shadow: 0 0 14px var(--c-shadow);
-}
-
-.uiverse:focus-visible {
-  outline: 3px solid #000;
-  outline-offset: 3px;
-}
-
-.dark-mode .uiverse:focus-visible {
-  outline-color: #f5f5f5;
-}
-</style>
-<style>
-.uiverse:before {
-  content: '';
-  pointer-events: none;
-  position: absolute;
-  z-index: 3;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 24px;
-  box-shadow: inset 0 3px 12px var(--c-shadow-inset-top), inset 0 -3px 4px var(--c-shadow-inset-bottom);
-}
-
-.uiverse:before {
-  content: "";
-  pointer-events: none;
-  position: absolute;
-  z-index: 3;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 24px;
-  box-shadow:
-    inset 0 3px 12px var(--c-shadow-inset-top),
-    inset 0 -3px 4px var(--c-shadow-inset-bottom);
-}
-
-.uiverse .wrapper {
-  -webkit-mask-image: -webkit-radial-gradient(white, black);
+.gif_button {
+  width: 130px;
+  height: 48px;
   overflow: hidden;
-  border-radius: 24px;
-  min-width: 132px;
-  padding: 12px 0;
+  border-radius: 50px;
 }
-
-.uiverse .wrapper span {
-  display: inline-block;
-  position: relative;
-  z-index: 1;
-  font-family: ;
-}
-
-.uiverse:hover {
-  --duration: 1400ms;
-}
-
-.uiverse .wrapper .circle {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  filter: blur(var(--blur, 8px));
-  background: var(--background, transparent);
-  transform: translate(var(--x, 0), var(--y, 0)) translateZ(0);
-  animation: var(--animation, none) var(--duration) var(--easing) infinite;
-}
-
-.uiverse .wrapper .circle.circle-1,
-.uiverse .wrapper .circle.circle-9,
-.uiverse .wrapper .circle.circle-10 {
-  --background: var(--c-color-4);
-}
-
-.uiverse .wrapper .circle.circle-3,
-.uiverse .wrapper .circle.circle-4 {
-  --background: var(--c-color-2);
-  --blur: 14px;
-}
-
-.uiverse .wrapper .circle.circle-5,
-.uiverse .wrapper .circle.circle-6 {
-  --background: var(--c-color-3);
-  --blur: 100px;
-}
-
-.uiverse .wrapper .circle.circle-2,
-.uiverse .wrapper .circle.circle-7,
-.uiverse .wrapper .circle.circle-8,
-.uiverse .wrapper .circle.circle-11,
-.uiverse .wrapper .circle.circle-12 {
-  --background: var(--c-color-1);
-  --blur: 12px;
-}
-
-.uiverse .wrapper .circle.circle-1 {
-  --x: 0;
-  --y: -40px;
-  --animation: circle-1;
-}
-
-.uiverse .wrapper .circle.circle-2 {
-  --x: 92px;
-  --y: 8px;
-  --animation: circle-2;
-}
-
-.uiverse .wrapper .circle.circle-3 {
-  --x: -12px;
-  --y: -12px;
-  --animation: circle-3;
-}
-
-.uiverse .wrapper .circle.circle-4 {
-  --x: 80px;
-  --y: -12px;
-  --animation: circle-4;
-}
-
-.uiverse .wrapper .circle.circle-5 {
-  --x: 12px;
-  --y: -4px;
-  --animation: circle-5;
-}
-
-.uiverse .wrapper .circle.circle-6 {
-  --x: 56px;
-  --y: 16px;
-  --animation: circle-6;
-}
-
-.uiverse .wrapper .circle.circle-7 {
-  --x: 8px;
-  --y: 28px;
-  --animation: circle-7;
-}
-
-.uiverse .wrapper .circle.circle-8 {
-  --x: 28px;
-  --y: -4px;
-  --animation: circle-8;
-}
-
-.uiverse .wrapper .circle.circle-9 {
-  --x: 20px;
-  --y: -12px;
-  --animation: circle-9;
-}
-
-.uiverse .wrapper .circle.circle-10 {
-  --x: 64px;
-  --y: 16px;
-  --animation: circle-10;
-}
-
-.uiverse .wrapper .circle.circle-11 {
-  --x: 4px;
-  --y: 4px;
-  --animation: circle-11;
-}
-
-.uiverse .wrapper .circle.circle-12 {
-  --blur: 14px;
-  --x: 52px;
-  --y: 4px;
-  --animation: circle-12;
-}
-
-@keyframes circle-1 {
-  33% {
-    transform: translate(0px, 16px) translateZ(0);
-  }
-
-  66% {
-    transform: translate(12px, 64px) translateZ(0);
-  }
-}
-
-@keyframes circle-2 {
-  33% {
-    transform: translate(80px, -10px) translateZ(0);
-  }
-
-  66% {
-    transform: translate(72px, -48px) translateZ(0);
-  }
-}
-
-@keyframes circle-3 {
-  33% {
-    transform: translate(20px, 12px) translateZ(0);
-  }
-
-  66% {
-    transform: translate(12px, 4px) translateZ(0);
-  }
-}
-
-@keyframes circle-4 {
-  33% {
-    transform: translate(76px, -12px) translateZ(0);
-  }
-
-  66% {
-    transform: translate(112px, -8px) translateZ(0);
-  }
-}
-
-@keyframes circle-5 {
-  33% {
-    transform: translate(84px, 28px) translateZ(0);
-  }
-
-  66% {
-    transform: translate(40px, -32px) translateZ(0);
-  }
-}
-
-@keyframes circle-6 {
-  33% {
-    transform: translate(28px, -16px) translateZ(0);
-  }
-
-  66% {
-    transform: translate(76px, -56px) translateZ(0);
-  }
-}
-
-@keyframes circle-7 {
-  33% {
-    transform: translate(8px, 28px) translateZ(0);
-  }
-
-  66% {
-    transform: translate(20px, -60px) translateZ(0);
-  }
-}
-
-@keyframes circle-8 {
-  33% {
-    transform: translate(32px, -4px) translateZ(0);
-  }
-
-  66% {
-    transform: translate(56px, -20px) translateZ(0);
-  }
-}
-
-@keyframes circle-9 {
-  33% {
-    transform: translate(20px, -12px) translateZ(0);
-  }
-
-  66% {
-    transform: translate(80px, -8px) translateZ(0);
-  }
-}
-
-@keyframes circle-10 {
-  33% {
-    transform: translate(68px, 20px) translateZ(0);
-  }
-
-  66% {
-    transform: translate(100px, 28px) translateZ(0);
-  }
-}
-
-@keyframes circle-11 {
-  33% {
-    transform: translate(4px, 4px) translateZ(0);
-  }
-
-  66% {
-    transform: translate(68px, 20px) translateZ(0);
-  }
-}
-
-@keyframes circle-12 {
-  33% {
-    transform: translate(56px, 0px) translateZ(0);
-  }
-
-  66% {
-    transform: translate(60px, -32px) translateZ(0);
-  }
+  .gif-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.12);
+    /* augmente pour rogner plus */
+    transform-origin: center;
 }
 </style>
 
