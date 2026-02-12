@@ -3,8 +3,8 @@ import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
 import axios from 'axios';
 
 // --- CONFIGURACIÓN ---
-const HF_BACKEND_URL = "http://localhost:8000";
-//const HF_BACKEND_URL = "https://vipaugusto-backend-ai-hf.hf.space";
+//const HF_BACKEND_URL = "http://localhost:8000";
+const HF_BACKEND_URL = "https://combined-christabel-sokorro-1f18a293.koyeb.app";
 // Mapa de estados para usar nombres en lugar de números mágicos
 const STATUS = {
   PENDING: 1,
@@ -71,7 +71,7 @@ const iniciarPolling = (id) => {
       // Consultamos solo ESTA licitación a tu API (NestJS/Vercel)
       // Ajusta la ruta '/api/licitaciones/' según tu backend real
       const { data: licitacionActualizada } = await axios.get(`/api/licitaciones/${id}`);
-      console.log()(`Polling ${id}: estado actual ${licitacionActualizada.estado_proceso}`);
+      console.log(`Polling ${id}: estado actual ${licitacionActualizada.estado_proceso}`);
       // Actualizamos solo este registro en el array local
       licitaciones.value[index] = { 
         ...licitaciones.value[index], 
@@ -296,7 +296,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                       @mouseleave="setGifHover(getRequestId(request, idx), false)"
                       @focus="setGifHover(getRequestId(request, idx), true)"
                       @blur="setGifHover(getRequestId(request, idx), false)"
-                      @click="handleGenerateClick(getRequestId(request))">
+                      @click="handleGenerateClick(request)" >
                       <img :src="gifSrcFor(getRequestId(request, idx))" alt="Resume PDF" class="gif-img" />
                     </button>
 
