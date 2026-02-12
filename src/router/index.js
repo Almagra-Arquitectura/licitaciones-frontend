@@ -9,7 +9,7 @@ const routes=[
     component: () => import('../../views/home.vue') // O el nombre de tu componente de lista
   },
   {
-    path: '/licitacion/:id/resumen',
+    path: '/licitaciones/:id/resumen',
     name: 'LicitacionResumen',
     component: LicitacionResumen,
     props: true // Para pasar el :id como prop al componente
