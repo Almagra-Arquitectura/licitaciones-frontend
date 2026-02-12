@@ -1,0 +1,209 @@
+<template>
+  <div class="page-container">
+    
+    <div v-if="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Consultando informe forense de la licitación...</p>
+    </div>
+
+    <div v-else-if="error" class="error-state">
+      <div class="error-card">
+        <h3>⚠️ No disponible</h3>
+        <p>{{ error }}</p>
+        <button @click="volver" class="btn-back">Volver al listado</button>
+      </div>
+    </div>
+
+    <div v-else class="content-state">
+      <div class="toolbar">
+        <button @click="volver" class="btn-secondary">← Volver</button>
+        <span class="badge">Expediente: {{ licitacionData.expediente }}</span>
+      </div>
+
+      <div class="markdown-viewer" v-html="renderedMarkdown"></div>
+    </div>
+
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+
+// Hacemos que la tabla ocupe el 100%
+marked.setOptions({
+  breaks: true, // Enter es salto de línea
+  gfm: true     // GitHub Flavored Markdown (tablas, etc)
+});
+
+const route = useRoute();
+const router = useRouter();
+
+// Estados
+const loading = ref(true);
+const error = ref(null);
+const licitacionData = ref(null);
+const markdownContent = ref('');
+
+// ID que viene de la URL
+const licitacionId = route.params.id;
+
+// Función para obtener datos (simulada, reemplaza con tu fetch real)
+const fetchLicitacion = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+
+    // --- AQUÍ VA TU LLAMADA REAL A LA BASE DE DATOS ---
+    const response = await fetch(`/api/licitaciones/${licitacionId}`);
+    const data = await response.json();
+    
+    // SIMULACIÓN DE RESPUESTA DE TU API (BORRA ESTO CUANDO PONGAS TU API)
+    //await new Promise(r => setTimeout(r, 800)); // Fake delay
+    // const data = {
+    //   id: licitacionId,
+    //   expediente: 'SER/25/0048',
+    //   // Simula que viene el JSON con el campo analisis_ia
+    //   analisis_ia: {
+    //     informe_detallado: `# Informe de Viabilidad... (Tu markdown aquí)`
+    //   }
+    //   // PRUEBA DE FALLO: Comenta la línea de arriba para probar la validación
+    // }; 
+    // ---------------------------------------------------
+
+    // VALIDACIÓN CRÍTICA: ¿Existe el resumen?
+    if (!data.analisis_ia || !data.analisis_ia.informe_detallado) {
+      throw new Error("Esta licitación aún no ha sido auditada por la IA.");
+    }
+
+    licitacionData.value = data;
+    markdownContent.value = data.analisis_ia.informe_detallado;
+
+  } catch (err) {
+    console.error(err);
+    error.value = err.message || "Error al cargar la licitación";
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Computada para renderizar el HTML seguro
+const renderedMarkdown = computed(() => {
+  if (!markdownContent.value) return '';
+  const html = marked.parse(markdownContent.value);
+  return DOMPurify.sanitize(html);
+});
+
+const volver = () => {
+  router.push('/'); // O la ruta de tu listado
+};
+
+onMounted(() => {
+  fetchLicitacion();
+});
+</script>
+
+<style scoped>
+/* Contenedor principal centrado */
+.page-container {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 0 20px;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* Estilos de Carga */
+.loading-state {
+  text-align: center;
+  padding: 50px;
+  color: #666;
+}
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+/* Estilos de Error */
+.error-card {
+  background: #fff5f5;
+  border: 1px solid #feb2b2;
+  color: #c53030;
+  padding: 30px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+/* Barra superior */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.badge {
+  background: #e2e8f0;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: bold;
+}
+
+.btn-secondary, .btn-back {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background: #edf2f7;
+  color: #2d3748;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.btn-back {
+  background: #c53030;
+  color: white;
+  margin-top: 15px;
+}
+.btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+/* --- ESTILOS DEL MARKDOWN (Copiar los que te pasé antes) --- */
+.markdown-viewer {
+  background: white;
+  padding: 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Asegurar tablas bonitas dentro del visor */
+:deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+:deep(th), :deep(td) {
+  border: 1px solid #cbd5e0;
+  padding: 10px;
+  text-align: left;
+}
+:deep(th) {
+  background-color: #f7fafc;
+  color: #2d3748;
+}
+:deep(h1) { border-bottom: 2px solid #edf2f7; padding-bottom: 10px; color: #2b6cb0; }
+:deep(h2) { color: #2c5282; margin-top: 30px; }
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
