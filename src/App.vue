@@ -188,7 +188,6 @@ onUnmounted(() => {
 
 const expandedById = ref({});
 const isExpanded = (requestId) => Boolean(expandedById.value[requestId]);
-const hoverById = ref({});
 
 const toggleExpanded = (requestId) => {
   expandedById.value = {
@@ -208,14 +207,6 @@ const getCollapsedText = (text, maxLength = 120) => {
   return `${value.slice(0, maxLength).trimEnd()}...`;
 };
 
-const setGifHover = (requestId, isHover) => {
-  hoverById.value = {
-    ...hoverById.value,
-    [requestId]: isHover,
-  };
-};
-
-const gifSrcFor = (requestId) => (hoverById.value[requestId] ? '/hoover_button.gif' : '/button.gif');
 </script>
 
 <template>
@@ -292,12 +283,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                   <div class="request-action flex">
                     <button
                       v-if="!request.estado_proceso || request.estado_proceso === 1 || request.estado_proceso === 4"
-                      class="gif_button" @mouseenter="setGifHover(getRequestId(request, idx), true)"
-                      @mouseleave="setGifHover(getRequestId(request, idx), false)"
-                      @focus="setGifHover(getRequestId(request, idx), true)"
-                      @blur="setGifHover(getRequestId(request, idx), false)"
-                      @click="handleGenerateClick(request)" >
-                      <img :src="gifSrcFor(getRequestId(request, idx))" alt="Resume PDF" class="gif-img" />
+                      class="gif_button"
+                      @click="handleGenerateClick(request)">
+                      <img src="/button.gif" alt="Resume PDF" class="gif-img gif-img-default" />
+                      <img src="/hoover_button.gif" alt="Resume PDF hover" class="gif-img gif-img-hover" />
                     </button>
 
                     <div v-else-if="request.estado_proceso === 2" class="uiverse" style="cursor: wait; opacity: 0.8;">
@@ -525,7 +514,8 @@ h1 {
 
 .container {
   width: 100%;
-  max-width: 1100%;
+  max-width: 1200px;
+  margin: 0 auto;
   flex: 1;
   padding: 0 8rem;
   box-sizing: border-box;
@@ -606,12 +596,20 @@ h1 {
 .request-card-footer {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 0.6rem;
 }
 
 .request-genre {
   font-size: 1.05rem;
   color: #00b4d4;
   font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .request-action {
@@ -774,7 +772,7 @@ a.download-btn {
 
 @media (max-width: 800px) {
   .main-scrollable {
-    margin-top: 150px;
+    margin-top: 205px;
   }
 
   .header-content,
@@ -803,9 +801,19 @@ a.download-btn {
   }
 
   .request-action {
-    margin-left: 0;
+    margin-left: auto;
     min-width: 0;
-    width: 100%;
+    width: auto;
+  }
+
+  .request-card-footer {
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .gif_button {
+    width: 118px;
+    height: 42px;
   }
 
   .summary-blur {
@@ -818,7 +826,7 @@ a.download-btn {
     align-items: stretch;
     gap: 0.5rem;
     padding: 0.5rem 0.5rem;
-    top: 85px;
+    top: 88px;
   }
 
   .filter-input,
@@ -839,7 +847,7 @@ a.download-btn {
   }
 
   .container {
-    padding: 0 0.1rem;
+    padding: 0 0.5rem;
   }
 
   .header-search-input {
@@ -1053,18 +1061,44 @@ a.download-btn {
 }
 
 .gif_button {
+  position: relative;
   width: 130px;
   height: 48px;
   overflow: hidden;
   border-radius: 50px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
 }
-  .gif-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform: scale(1.12);
-    /* augmente pour rogner plus */
-    transform-origin: center;
+
+.gif-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.12);
+  transform-origin: center;
+  transition: opacity 0.15s ease;
+}
+
+.gif-img-default {
+  opacity: 1;
+}
+
+.gif-img-hover {
+  opacity: 0;
+}
+
+.gif_button:hover .gif-img-default,
+.gif_button:focus-visible .gif-img-default {
+  opacity: 0;
+}
+
+.gif_button:hover .gif-img-hover,
+.gif_button:focus-visible .gif-img-hover {
+  opacity: 1;
 }
 </style>
 
