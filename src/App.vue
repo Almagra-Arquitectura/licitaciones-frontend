@@ -4,6 +4,7 @@ import axios from 'axios';
 
 // --- CONFIGURACIÓN ---
 const HF_BACKEND_URL = "http://localhost:8000";
+//const HF_BACKEND_URL = "https://vipaugusto-backend-ai-hf.hf.space";
 // Mapa de estados para usar nombres en lugar de números mágicos
 const STATUS = {
   PENDING: 1,
