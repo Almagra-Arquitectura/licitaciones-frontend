@@ -17,4 +17,14 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    proxy: {
+      // Cualquier petición que empiece con /api...
+      '/api': {
+        target: 'http://127.0.0.1:3000', // ...se redirige al backend de Vercel
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  }
 })
