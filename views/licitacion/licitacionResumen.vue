@@ -356,6 +356,10 @@ onMounted(() => {
   filter: brightness(0) invert(1);
 }
 
+.dark-mode .navbar-brand:hover .logo-img {
+  filter: brightness(0) invert(1) blur(1.5px);
+}
+
 .dark-mode .nav-link,
 .dark-mode .nav-current,
 .dark-mode .nav-sep {
