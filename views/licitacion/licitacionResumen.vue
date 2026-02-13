@@ -161,6 +161,16 @@ onMounted(() => {
 .navbar-brand {
   display: inline-flex;
   align-items: center;
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: 240px;
+}
+
+.logo-img {
+  display: block;
+  width: 220px;
+  max-width: 100%;
+  height: auto;
 }
 
 .mobile-logo {
@@ -178,6 +188,8 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 14px;
+  flex: 0 0 auto;
+  margin-left: 12px;
 }
 
 .nav-link {
@@ -433,12 +445,8 @@ onMounted(() => {
     height: 68px;
   }
 
-  .desktop-logo {
-    display: none;
-  }
-
-  .mobile-logo {
-    display: block;
+  .logo-img {
+    width: 190px;
   }
 
   .navbar-links {
@@ -448,6 +456,33 @@ onMounted(() => {
 
   .page-shell {
     padding-top: 80px;
+  }
+}
+
+@media (max-width: 560px) {
+  .logo-img {
+    width: 160px;
+  }
+
+  .nav-current,
+  .nav-sep {
+    display: none;
+  }
+
+  .navbar-right {
+    gap: 8px;
+    margin-left: 8px;
+  }
+}
+
+@media (max-width: 420px) {
+  .desktop-logo {
+    display: none;
+  }
+
+  .mobile-logo {
+    display: block;
+    width: 108px;
   }
 }
 </style>
