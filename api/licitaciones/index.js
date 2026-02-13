@@ -54,27 +54,27 @@ export default async function handler(req, res) {
       .toArray();
 
     // Mapeamos los resultados para formatear la fecha antes de enviarlos
-    const respuesta = licitaciones.map(lic => ({
-      ...lic,
-      f_publicacion: new Date(lic.f_publicacion).toLocaleString('es-ES', {
-          timeZone: 'UTC',     // <--- Esto evita que la hora cambie
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        }),
-      fecha_fin_po: new Date(lic.fecha_fin_po).toLocaleString('es-ES', {
-          timeZone: 'UTC',     // <--- Esto evita que la hora cambie
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        }), 
-    }));
+    // const respuesta = licitaciones.map(lic => ({
+    //   ...lic,
+    //   f_publicacion: new Date(lic.f_publicacion).toLocaleString('es-ES', {
+    //       timeZone: 'UTC',     // <--- Esto evita que la hora cambie
+    //       day: '2-digit',
+    //       month: '2-digit',
+    //       year: 'numeric',
+    //       hour: '2-digit',
+    //       minute: '2-digit',
+    //       second: '2-digit'
+    //     }),
+    //   fecha_fin_po: new Date(lic.fecha_fin_po).toLocaleString('es-ES', {
+    //       timeZone: 'UTC',     // <--- Esto evita que la hora cambie
+    //       day: '2-digit',
+    //       month: '2-digit',
+    //       year: 'numeric',
+    //       hour: '2-digit',
+    //       minute: '2-digit',
+    //       second: '2-digit'
+    //     }), 
+    // }));
 
     // 4. Responder con los datos y la información de paginación
 
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
         currentPage: page,
         pageSize: limit
       },
-      results: respuesta
+      results: licitaciones
     });
 
   } catch (error) {

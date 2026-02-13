@@ -246,6 +246,25 @@ const getCollapsedText = (text, maxLength = 120) => {
   return `${value.slice(0, maxLength).trimEnd()}...`;
 };
 
+
+// Función para formatear fechas
+const formatearFecha = (fechaString) => {
+  if (!fechaString) return 'Pendiente'; // O 'N/A' si viene nulo
+
+  const fecha = new Date(fechaString);
+
+  // Usamos Intl.DateTimeFormat que es más eficiente y moderno
+  return new Intl.DateTimeFormat('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    timeZone: 'UTC' // Mantenemos UTC como querías, o quítalo para usar la hora local del usuario
+  }).format(fecha);
+};
+
 </script>
 
 <template>
@@ -369,8 +388,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
               <div class="request-col request-col-meta lg:col-span-4 flex flex-col gap-2 text-sm text-gray-600 lg:border-l lg:border-gray-200 lg:pl-3">
                 <div class="meta-row"><strong>Precio:</strong><span>{{ request.importe }}</span></div>
-                <div class="meta-row"><strong>Publicado:</strong><span>{{ request.f_publicacion }}</span></div>
-                <div class="meta-row"><strong>Fecha limite:</strong><span>{{ request.fecha_fin_po }}</span></div>
+                <div class="meta-row"><strong>Publicado:</strong><span>{{ formatearFecha(request.f_publicacion) }}</span></div>
+                <div class="meta-row"><strong>Fecha limite:</strong><span>{{ formatearFecha(request.fecha_fin_po) }}</span></div>
                 <div class="meta-row"><strong>Lugar:</strong><span>{{ request.lugar_ejecucion }}</span></div>
               </div>
 
