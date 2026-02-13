@@ -18,7 +18,8 @@ const licitaciones = ref([]);
 const pagination = ref({ total: 0, pages: 1, currentPage: 1, pageSize: 10 });
 const loading = ref(false);
 const search = ref('');
-const isDark = ref(false);
+const THEME_STORAGE_KEY = 'theme_mode';
+const isDark = ref(true);
 
 // Almacén de intervalos de polling activos: { [idLicitacion]: intervalId }
 const activePolls = ref({});
@@ -204,9 +205,17 @@ const debounce = (fn, wait = 400) => {
 const debouncedSearch = debounce(() => obtenerDatos(1), 400);
 
 watch(search, () => debouncedSearch());
+watch(isDark, (enabled) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(THEME_STORAGE_KEY, enabled ? 'dark' : 'light');
+});
 
 // --- CICLO DE VIDA ---
 onMounted(() => {
+  if (typeof window !== 'undefined') {
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    isDark.value = savedTheme === 'dark';
+  }
   console.log("Componente montado.");
   obtenerDatos();
 });
@@ -249,10 +258,10 @@ const getCollapsedText = (text, maxLength = 120) => {
           <img class="md:hidden logo-img" src="/main_logo2.svg" alt="Logo" width="125" height="0">
         </a>
         <div>
-          <h1>Sokorro Public Design Requests</h1>
-          <p class="subtitle">Find and explore the latest public design requests, filtered by AI.</p>
+          <h1>Licitaciones de servicios de publicidad</h1>
+          <p class="subtitle">Encuentra y explora las ultimas licitaciones publicas, filtradas por IA.</p>
         </div>
-        <input v-model="search" type="text" placeholder="Search by keywords..."
+        <input v-model="search" type="text" placeholder="Buscar por palabras clave..."
           class="filter-input header-search-input" />
         <div class="theme-toggle">
           <!-- From Uiverse.io by artginzburg -->
@@ -277,13 +286,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     <div class="main-scrollable">
       <!-- Mobile search under header -->
       <section class="filters filters-bar mobile-search-section mt-[50px] lg:mt-[5px]">
-        <input v-model="search" type="text" placeholder="Search by keywords..." class="filter-input" />
+        <input v-model="search" type="text" placeholder="Buscar por palabras clave..." class="filter-input" />
       </section>
 
       <!-- Requests list -->
       <main class="container mt-[40px] lg:mt-[0px]">
         <div v-if="licitacionesFiltradas.length === 0" class="no-results">
-          No requests found.
+          No se encontraron solicitudes.
         </div>
         <div v-else class="request-list">
           <div v-for="(request, idx) in licitacionesFiltradas" :key="getRequestId(request, idx)"
@@ -305,7 +314,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                     @keyup.enter="toggleExpanded(getRequestId(request, idx))"
                     @keyup.space.prevent="toggleExpanded(getRequestId(request, idx))"
                   >
-                    {{ isExpanded(getRequestId(request, idx)) ? ' Moins' : ' Plus' }}
+                    {{ isExpanded(getRequestId(request, idx)) ? ' Menos' : ' Mas' }}
                   </span>
                 </h2>
                 <div class="request-card-footer">
@@ -359,16 +368,16 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
               </div>
 
               <div class="request-col request-col-meta lg:col-span-4 flex flex-col gap-2 text-sm text-gray-600 lg:border-l lg:border-gray-200 lg:pl-3">
-                <div class="meta-row"><strong>Price:</strong><span>{{ request.importe }}</span></div>
-                <div class="meta-row"><strong>Published:</strong><span>{{ request.f_publicacion }}</span></div>
-                <div class="meta-row"><strong>Deadline:</strong><span>{{ request.fecha_fin_po }}</span></div>
-                <div class="meta-row"><strong>Place:</strong><span>{{ request.lugar_ejecucion }}</span></div>
+                <div class="meta-row"><strong>Precio:</strong><span>{{ request.importe }}</span></div>
+                <div class="meta-row"><strong>Publicado:</strong><span>{{ request.f_publicacion }}</span></div>
+                <div class="meta-row"><strong>Fecha limite:</strong><span>{{ request.fecha_fin_po }}</span></div>
+                <div class="meta-row"><strong>Lugar:</strong><span>{{ request.lugar_ejecucion }}</span></div>
               </div>
 
               <div class="request-col request-col-links lg:col-span-3 flex flex-col gap-2 lg:pl-3">
                 <div class="meta-row">
-                  <strong>URL:</strong>
-                  <a :href="request.url" target="_blank" rel="noopener">Licitacion</a>
+                  <strong>Enlace:</strong>
+                  <a :href="request.url" target="_blank" rel="noopener">Ver licitacion</a>
                 </div>
                 <div v-if="request.archivos_principales && request.archivos_principales.length" class="files-block">
                   <div class="file-list">
@@ -377,7 +386,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
                       <a class="file-badge items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10"
                         :href="streamUrlFor(archivo.telegram_file_id)" target="_blank" rel="noopener">
-                        {{ archivo.etiqueta?.replace(/_/g, ' ') || 'Sans nom' }}
+                        {{ archivo.etiqueta?.replace(/_/g, ' ') || 'Sin nombre' }}
                       </a>
                       <a class="download-btn download-badge inline-flex rounded-md bg-red-50 px-1.5 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10"
                         :href="downloadUrlFor(archivo.telegram_file_id)" target="_blank" rel="noopener">
@@ -407,9 +416,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   
           <div class="pagination-info">
             <span class="info-text">
-              Página {{ pagination.currentPage }} / {{ pagination.pages }}
+              Pagina {{ pagination.currentPage }} / {{ pagination.pages }}
             </span>
-            <span class=""> • {{ pagination.total }} licitaciones totales</span>
+            <span class=""> - {{ pagination.total }} licitaciones totales</span>
           </div>
 
           <div class="pagination-controls">
@@ -418,9 +427,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
               class="pagination-btn nav-btn" 
               :disabled="loading || pagination.currentPage <= 1"
               @click="goToPage(pagination.currentPage - 1)"
-            >
-              ‹
-            </button>
+            >&lt;</button>
 
             <div class="pagination-numbers desktop-only">
               <template v-for="(pageItem, index) in visiblePages" :key="index">
@@ -441,9 +448,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
               class="pagination-btn nav-btn" 
               :disabled="loading || pagination.currentPage >= pagination.pages"
               @click="goToPage(pagination.currentPage + 1)"
-            >
-              ›
-            </button>
+            >&gt;</button>
 
           </div>
         </div>
@@ -460,7 +465,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   background: linear-gradient(120deg, #e0e7ef 0%, #f4f6fa 100%);
   position: relative;
   overflow-x: hidden;
-  border-radius: 15px;
   background: #e0e0e0;
   box-shadow: 32px 32px 64px #5a5a5a,
     -32px -32px 64px #ffffff;
@@ -1388,3 +1392,4 @@ onMounted(() => {
 
 
 </script>
+
