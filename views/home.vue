@@ -155,6 +155,36 @@ const goToPage = (nextPage) => {
   obtenerDatos(safePage);
 };
 
+const visiblePages = computed(() => {
+  const total = pagination.value.pages; // Nota: si 'pagination' es una prop, usa props.pagination.pages
+  const current = pagination.value.currentPage;
+  const maxVisibleButtons = 7;
+
+  // 1. Si hay pocas páginas, mostramos todas (ej: [1, 2, 3, 4, 5])
+  if (total <= maxVisibleButtons) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  // 2. Estamos cerca del inicio (ej: [1, 2, 3, 4, 5, '...', 100])
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, '...', total];
+  }
+
+  // 3. Estamos cerca del final (ej: [1, '...', 96, 97, 98, 99, 100])
+  if (current >= total - 3) {
+    return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+  }
+
+  // 4. Estamos en medio (ej: [1, '...', 49, 50, 51, '...', 100])
+  return [1, '...', current - 1, current, current + 1, '...', total];
+});
+
+// Función auxiliar para manejar el clic
+const handlePageClick = (page) => {
+  if (page === '...' || page === pagination.value.currentPage) return;
+  goToPage(page);
+};
+
 // --- UTILIDADES ---
 const formatMoneda = (valor) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(valor);
 const streamUrlFor = (fileId) => `/api/stream?file_id=${encodeURIComponent(fileId)}`;
@@ -258,8 +288,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         <div v-else class="request-list">
           <div v-for="(request, idx) in licitacionesFiltradas" :key="getRequestId(request, idx)"
             class="request-card neumorph-card mb-4">
-            <div class="request-card-content">
-              <div class="request-col request-col-main">
+            <div class="request-card-content grid grid-cols-1 lg:grid-cols-12 gap-4 p-6 w-full items-start">
+              <div class="request-col-main lg:col-span-5 flex flex-col gap-3">
                 <h2 class="request-title">
                   {{
                     isExpanded(getRequestId(request, idx))
@@ -312,14 +342,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 </div>
               </div>
 
-              <div class="request-col request-col-meta">
+              <div class="request-col request-col-meta lg:col-span-4 flex flex-col gap-2 text-sm text-gray-600 lg:border-l lg:border-gray-200 lg:pl-3">
                 <div class="meta-row"><strong>Price:</strong><span>{{ request.importe }}</span></div>
                 <div class="meta-row"><strong>Published:</strong><span>{{ request.f_publicacion }}</span></div>
                 <div class="meta-row"><strong>Deadline:</strong><span>{{ request.fecha_fin_po }}</span></div>
                 <div class="meta-row"><strong>Place:</strong><span>{{ request.lugar_ejecucion }}</span></div>
               </div>
 
-              <div class="request-col request-col-links">
+              <div class="request-col request-col-links lg:col-span-3 flex flex-col gap-2 lg:pl-3">
                 <div class="meta-row">
                   <strong>URL:</strong>
                   <a :href="request.url" target="_blank" rel="noopener">Licitacion</a>
@@ -329,13 +359,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                     <div class="file-items gap-2 flex" v-for="archivo in request.archivos_principales"
                       :key="archivo.telegram_file_id">
 
-                      <a class="file-badge items-center rounded-md bg-indigo-50 px-2 py-1 text-sm font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10"
+                      <a class="file-badge items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10"
                         :href="streamUrlFor(archivo.telegram_file_id)" target="_blank" rel="noopener">
                         {{ archivo.etiqueta?.replace(/_/g, ' ') || 'Sans nom' }}
                       </a>
-                      <a class="download-btn download-badge inline-flex rounded-md bg-red-50 px-1.5 py-1 text-sm font-medium text-red-700 inset-ring inset-ring-red-600/10"
+                      <a class="download-btn download-badge inline-flex rounded-md bg-red-50 px-1.5 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10"
                         :href="downloadUrlFor(archivo.telegram_file_id)" target="_blank" rel="noopener">
-                        <svg class="w-4 h-4 text-gray-800 dark:text-dark" aria-hidden="true"
+                        <svg class="w-3 text-gray-800 dark:text-dark" aria-hidden="true"
                           xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 18">
                           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M8 1v11m0 0 4-4m-4 4L4 8m11 4v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-3" />
@@ -357,25 +387,49 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             </div>
           </div>
         </div>
-        <div v-if="licitacionesFiltradas.length > 0" class="pagination">
-          <button class="pagination-btn" :disabled="loading || pagination.currentPage <= 1"
-            @click="goToPage(pagination.currentPage - 1)">
-            Previous
-          </button>
+        <div v-if="licitacionesFiltradas.length > 0" class="pagination-wrapper">
+  
           <div class="pagination-info">
-            Page {{ pagination.currentPage }} / {{ pagination.pages }} • {{ pagination.total }} total
+            <span class="info-text">
+              Página {{ pagination.currentPage }} / {{ pagination.pages }}
+            </span>
+            <span class=""> • {{ pagination.total }} licitaciones totales</span>
           </div>
-          <div class="pagination-pages">
-            <button v-for="pageNumber in pagination.pages" :key="pageNumber" class="pagination-btn page-number-btn"
-              :class="{ 'is-active': pageNumber === pagination.currentPage }" :disabled="loading"
-              @click="goToPage(pageNumber)">
-              {{ pageNumber }}
+
+          <div class="pagination-controls">
+            
+            <button 
+              class="pagination-btn nav-btn" 
+              :disabled="loading || pagination.currentPage <= 1"
+              @click="goToPage(pagination.currentPage - 1)"
+            >
+              ‹
             </button>
+
+            <div class="pagination-numbers desktop-only">
+              <template v-for="(pageItem, index) in visiblePages" :key="index">
+                <button 
+                  v-if="pageItem !== '...'"
+                  class="pagination-btn page-number-btn"
+                  :class="{ 'is-active': pageItem === pagination.currentPage }"
+                  :disabled="loading"
+                  @click="goToPage(pageItem)"
+                >
+                  {{ pageItem }}
+                </button>
+                <span v-else class="pagination-dots">...</span>
+              </template>
+            </div>
+
+            <button 
+              class="pagination-btn nav-btn" 
+              :disabled="loading || pagination.currentPage >= pagination.pages"
+              @click="goToPage(pagination.currentPage + 1)"
+            >
+              ›
+            </button>
+
           </div>
-          <button class="pagination-btn" :disabled="loading || pagination.currentPage >= pagination.pages"
-            @click="goToPage(pagination.currentPage + 1)">
-            Next
-          </button>
         </div>
       </main>
     </div>
@@ -556,14 +610,14 @@ h1 {
   transform: translateY(-2px) scale(1.01);
 }
 
-.request-card-content {
+/* .request-card-content {
   display: grid;
   grid-template-columns: minmax(280px, 1.7fr) minmax(250px, 1.2fr) minmax(240px, 1fr);
   align-items: start;
   width: 100%;
-  padding: 0.85rem 1rem;
+  padding: 1rem 1rem;
   gap: 1.3rem;
-}
+} */
 
 .request-col {
   min-width: 0;
@@ -574,13 +628,11 @@ h1 {
   flex-direction: column;
   justify-content: space-between;
   gap: 0.75rem;
-  border-right: 1px solid rgba(0, 0, 0, 0.12);
-  padding-right: 1rem;
 }
 
 .request-col-main h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: #222;
   line-height: 1.28;
@@ -610,7 +662,7 @@ h1 {
 }
 
 .request-genre {
-  font-size: 1.05rem;
+  font-size: 0.9rem;
   color: #00b4d4;
   font-weight: 600;
   flex: 1;
@@ -629,17 +681,17 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  font-size: 1.05rem;
+  font-size: .90rem;
   color: #444;
   border-right: 1px solid rgba(0, 0, 0, 0.12);
-  padding-right: 1rem;
+  padding-right: .6rem;
 }
 
 .request-col-links {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  font-size: 1.05rem;
+  font-size: .9rem;
   color: #444;
 }
 
@@ -760,12 +812,13 @@ a.download-btn {
   word-break: break-word;
 }
 
+
 @media (max-width: 1180px) {
   .request-card-content {
     grid-template-columns: 1.35fr 1fr;
   }
 
-  .request-col-main,
+  
   .request-col-meta {
     border-right: none;
     padding-right: 0;
@@ -797,10 +850,15 @@ a.download-btn {
     padding: 0.7rem 0.5rem;
   }
 
-  .request-col-main,
+  .request-col-mainç {
+    border-right: none;
+    padding-right: 0;
+  }
   .request-col-meta {
     border-right: none;
     padding-right: 0;
+    border-top: 1px dashed rgba(0, 0, 0, 0.14);
+    padding-top: 10px;
   }
 
   .request-col-links {
@@ -1108,6 +1166,101 @@ a.download-btn {
 .gif_button:focus-visible .gif-img-hover {
   opacity: 1;
 }
+
+/* CONTENEDOR PRINCIPAL: Columna vertical */
+.pagination-wrapper {
+  display: flex;
+  flex-direction: column; /* Pone la info arriba y controles abajo */
+  align-items: center;      /* Centra todo horizontalmente */
+  gap: 15px;                /* Espacio entre el texto y los botones */
+  width: 100%;
+  padding: 20px 0;
+}
+
+/* TEXTO DE INFORMACIÓN */
+.pagination-info {
+  font-size: 0.9rem;
+  color: #666;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* CONTENEDOR DE BOTONES (La clave para que no se separen) */
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center; /* IMPORTANTE: Junta todo al centro */
+  gap: 8px;                /* Espacio pequeñito entre botones */
+  flex-wrap: wrap;         /* Por seguridad, si la pantalla es enana */
+}
+
+/* ESTILO DE LOS BOTONES */
+.pagination-btn {
+  width: 34px;             /* Tamaño fijo cuadrado */
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+  background: white;
+  border-radius: 8px;      /* Bordes redondeados */
+  cursor: pointer;
+  color: #333;
+  font-size: 1.2rem;       /* Tamaño de la flecha */
+  line-height: 1;
+      /* Ajuste visual para centrar la flecha */
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  border-color: #cbd5e0;
+}
+
+.pagination-btn.is-active {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background-color: #f8fafc;
+}
+
+.pagination-dots {
+  color: #94a3b8;
+  padding: 0 4px;
+}
+
+/* NÚMEROS (Contenedor interno) */
+.pagination-numbers {
+  display: flex;
+  gap: 8px;
+}
+
+/* --- MÓVIL (Pantallas pequeñas) --- */
+@media (max-width: 640px) {
+  
+  /* Ocultar números y texto extra */
+  .desktop-only, .desktop-text {
+    display: none;
+  }
+
+  /* En móvil, las flechas se quedan juntas en el centro */
+  .pagination-controls {
+    gap: 15px; /* Un poco más de espacio entre flechas para el dedo */
+  }
+
+  /* Botones un poco más grandes para tocar mejor */
+  .pagination-btn.nav-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 1.6rem;
+  }
+}
+
 </style>
 
 <script>
