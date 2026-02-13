@@ -173,6 +173,10 @@ onMounted(() => {
   height: auto;
 }
 
+.navbar-brand:hover .logo-img {
+  filter: blur(1.5px);
+}
+
 .mobile-logo {
   display: none;
 }
