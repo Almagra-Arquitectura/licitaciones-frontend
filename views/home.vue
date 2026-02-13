@@ -314,7 +314,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                     <button
                       v-if="!request.status || request.status === 1 || request.status === 4"
                       class="gif_button"
-                      @click="handleGenerateClick(request)"><span>GENERAR RESUMEN</span>
+                      @click="handleGenerateClick(request)"><span id="resume1">GENERAR RESUMEN</span>
                       <img src="/button.gif" alt="Resume PDF" class="gif-img gif-img-default" />
                       <img src="/hover_button.gif" alt="Resume PDF hover" class="gif-img gif-img-hover" />
                     </button>
@@ -1157,6 +1157,7 @@ a.download-btn {
   background: transparent;
   cursor: pointer;
   z-index: 0;
+  font-size: ;
 }
 
 .gif_button span {
@@ -1165,6 +1166,15 @@ a.download-btn {
   color: #fff;
   font-weight: 700;
   font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+.gif_button #resume1 {
+  position: relative;
+  z-index: 3;
+  color: #fff;
+  font-weight: 700;
+  font-size: .95rem;
   white-space: nowrap;
 }
 
