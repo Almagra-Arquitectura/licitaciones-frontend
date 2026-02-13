@@ -314,16 +314,20 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                     <button
                       v-if="!request.status || request.status === 1 || request.status === 4"
                       class="gif_button"
-                      @click="handleGenerateClick(request)">
+                      @click="handleGenerateClick(request)"><span>GENERAR RESUMEN</span>
                       <img src="/button.gif" alt="Resume PDF" class="gif-img gif-img-default" />
-                      <img src="/hoover_button.gif" alt="Resume PDF hover" class="gif-img gif-img-hover" />
+                      <img src="/hover_button.gif" alt="Resume PDF hover" class="gif-img gif-img-hover" />
                     </button>
 
-                    <div v-else-if="request.status === 2" class="uiverse" style="cursor: wait; opacity: 0.8;">
-                      <div class="wrapper">
-                        <span>ANALIZANDO... ⏳</span>
-                        </div>
-                    </div>
+                    <button
+                      v-else-if="request.status === 2"
+                      class="gif_button is-disabled animate-pulse pulse-fast"
+                      type="button"
+                      disabled
+                    ><span>ANALIZANDO</span>
+                      <img src="/button.gif" alt="Analizando" class="gif-img gif-img-default" />
+                      <img src="/hover_button.gif" alt="Analizando" class="gif-img gif-img-hover" />
+                    </button>
 
                     <!-- <div v-else-if="request.status === 3" class="generated-text-area whitespace-pre-wrap" >
                       <strong style="color: #0078d4">Resumen Auditoría:</strong>
@@ -331,13 +335,25 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                       {{ request.analisis_ia?.resumen || "Informe generado. Click para ver detalles." }}
                     </div> -->
 
-                    <router-link 
-                      v-if="request.status === 3" 
-                      :to="{ name: 'LicitacionResumen', params: { id: request._id }}"
-                      class="btn-ver"
-                    >
-                      Ver Auditoría IA
-                    </router-link>
+                    <div v-else-if="request.status === 3" class="completed-actions">
+                      <router-link
+                        :to="{ name: 'LicitacionResumen', params: { id: request._id }}"
+                        class="btn-completed-main "
+                      >
+                        VER AUDITORIA IA
+                      </router-link>
+                      <button
+                        class="gif_button gif_button-round"
+                        type="button"
+                        @click="handleGenerateClick(request)"
+                        aria-label="Reanudar analisis"
+                        title="Reanudar analisis"
+                      >
+                        <span class="loop-icon">&#x21BB;</span>
+                        <img src="/button.gif" alt="Reanudar analisis" class="gif-img gif-img-default" />
+                        <img src="/hover_button.gif" alt="Reanudar analisis" class="gif-img gif-img-hover" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -878,8 +894,9 @@ a.download-btn {
   }
 
   .gif_button {
-    width: 118px;
-    height: 42px;
+    width: 140px;
+    height: 48px;
+    z-index: 1;
   }
 
   .summary-blur {
@@ -1128,7 +1145,10 @@ a.download-btn {
 
 .gif_button {
   position: relative;
-  width: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 170px;
   height: 48px;
   overflow: hidden;
   border-radius: 50px;
@@ -1136,6 +1156,74 @@ a.download-btn {
   padding: 0;
   background: transparent;
   cursor: pointer;
+  z-index: 0;
+}
+
+.gif_button span {
+  position: relative;
+  z-index: 3;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  white-space: nowrap;
+}
+
+.gif_button.is-disabled {
+  opacity: 0.8;
+  cursor: wait;
+}
+
+.pulse-fast {
+  animation-duration: 0.9s;
+}
+
+.completed-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-completed-main {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  min-width: 140px;
+  padding: 0 0rem;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #25b85c 0%, #1f9d50 100%);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 6px 14px rgba(20, 120, 60, 0.28);
+}
+
+.btn-completed-main:hover,
+.btn-completed-main:focus-visible {
+  background: linear-gradient(135deg, #2ecc71 0%, #22b35a 100%);
+}
+
+.gif_button-round {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  padding: 0;
+}
+
+.gif_button-round .gif-img {
+  transform: scale(1.45);
+}
+
+.loop-icon {
+  position: relative;
+  z-index: 3;
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1;
+  font-family: "Segoe UI Symbol", "Noto Sans Symbols", sans-serif;
 }
 
 .gif-img {
@@ -1147,6 +1235,7 @@ a.download-btn {
   transform: scale(1.12);
   transform-origin: center;
   transition: opacity 0.15s ease;
+  z-index: 1;
 }
 
 .gif-img-default {
