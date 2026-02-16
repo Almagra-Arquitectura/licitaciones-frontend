@@ -74,11 +74,16 @@ const licitacionId = route.params.id;
 // Función para obtener datos (simulada, reemplaza con tu fetch real)
 const fetchLicitacion = async () => {
   try {
+    const token = localStorage.getItem('auth_token');
     loading.value = true;
     error.value = null;
 
     // --- AQUÍ VA TU LLAMADA REAL A LA BASE DE DATOS ---
-    const response = await fetch(`/api/licitaciones/${licitacionId}`);
+    const response = await fetch(`/api/licitaciones/${licitacionId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     const data = await response.json();
     
     // SIMULACIÓN DE RESPUESTA DE TU API (BORRA ESTO CUANDO PONGAS TU API)
