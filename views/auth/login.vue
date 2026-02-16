@@ -36,7 +36,8 @@ const handleLogin = async () => {
 <template>
   <div class="login-container">
     <div class="card">
-      <h1>Acceso Corporativo</h1>
+        <img src="/main_logo.svg" alt="Logo" class="mb-4">
+      <h1>Login</h1>
       <form @submit.prevent="handleLogin">
         <input v-model="username" type="text" placeholder="Usuario" required />
         <input v-model="password" type="password" placeholder="Contraseña" required />

@@ -431,7 +431,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                         :to="{ name: 'LicitacionResumen', params: { id: request._id }}"
                         class="btn-completed-main "
                       >
-                        VER AUDITORIA IA
+                        VER RESUMEN IA
                       </router-link>
                       <button
                         class="gif_button gif_button-round"
