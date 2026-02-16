@@ -361,7 +361,7 @@ const formatearFecha = (fechaString) => {
         </a>
         <div>
           <h1>Licitaciones de servicios de publicidad</h1>
-          <p class="subtitle">Encuentra y explora las ultimas licitaciones publicas, filtradas por IA.</p>
+          <p class="subtitle">Encuentra y explora las últimas licitaciones públicas, filtradas por IA.</p>
         </div>
         <input v-model="search" type="text" placeholder="Buscar por palabras clave..."
           class="filter-input header-search-input" />
@@ -470,7 +470,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                     <div v-else-if="request.status === 3" class="completed-actions">
                       <router-link
                         :to="{ name: 'LicitacionResumen', params: { id: request._id }}"
-                        class="btn-completed-main "
+                        class="btn-completed-main bg-blue-400 hover:bg-blue-500"
                       >
                         VER RESUMEN IA
                       </router-link>
@@ -493,14 +493,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
               <div class="request-col request-col-meta lg:col-span-4 flex flex-col gap-2 text-sm text-gray-600 lg:border-l lg:border-gray-200 lg:pl-3">
                 <div class="meta-row"><strong>Precio:</strong><span>{{ request.importe }}</span></div>
                 <div class="meta-row"><strong>Publicado:</strong><span>{{ formatearFecha(request.f_publicacion) }}</span></div>
-                <div class="meta-row"><strong>Fecha limite:</strong><span>{{ formatearFecha(request.fecha_fin_po) }}</span></div>
+                <div class="meta-row"><strong>Fecha límite:</strong><span>{{ formatearFecha(request.fecha_fin_po) }}</span></div>
                 <div class="meta-row"><strong>Lugar:</strong><span>{{ request.lugar_ejecucion }}</span></div>
               </div>
 
               <div class="request-col request-col-links lg:col-span-3 flex flex-col gap-2 lg:pl-3">
                 <div class="meta-row">
                   <strong>Enlace:</strong>
-                  <a :href="request.url" target="_blank" rel="noopener">Ver licitacion</a>
+                  <a :href="request.url" target="_blank" rel="noopener">Ver licitación</a>
                 </div>
                 <div v-if="request.archivos_principales && request.archivos_principales.length" class="files-block">
                   <div class="file-list">
@@ -511,7 +511,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                         :href="streamUrlFor(archivo.telegram_file_id)" target="_blank" rel="noopener">
                         {{ archivo.etiqueta?.replace(/_/g, ' ') || 'Sin nombre' }}
                       </a>
-                      <a class="download-btn download-badge inline-flex rounded-md bg-red-50 px-1.5 py-1 text-xs font-medium text-red-700 inset-ring inset-ring-red-600/10"
+                      <a class="download-btn download-badge inline-flex rounded-md bg-blue-100 px-1.5 py-1 text-xs font-medium text-indigo-700 inset-ring inset-ring-red-600/10"
                         :href="downloadUrlFor(archivo.telegram_file_id)" target="_blank" rel="noopener">
                         <svg class="w-3 text-gray-800 dark:text-dark" aria-hidden="true"
                           xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 18">
@@ -669,6 +669,7 @@ h1 {
   border: none;
   cursor: pointer;
   border-radius: 8px;
+  transform: rotate(180deg);
 }
 
 /* Efecto suave de fondo al pasar el ratón por el icono de logout */
@@ -1343,8 +1344,8 @@ a.download-btn {
   height: 40px;
   min-width: 140px;
   padding: 0 0rem;
-  border-radius: 50px;
-  background: linear-gradient(135deg, #25b85c 0%, #1f9d50 100%);
+  border-radius: 8px;
+
   color: #fff;
   font-size: 0.85rem;
   font-weight: 700;
@@ -1353,10 +1354,7 @@ a.download-btn {
   box-shadow: 0 6px 14px rgba(20, 120, 60, 0.28);
 }
 
-.btn-completed-main:hover,
-.btn-completed-main:focus-visible {
-  background: linear-gradient(135deg, #2ecc71 0%, #22b35a 100%);
-}
+
 
 .gif_button-round {
   width: 48px;
