@@ -73,9 +73,15 @@ const iniciarPolling = (id) => {
     }
 
     try {
+      const token = localStorage.getItem('auth_token');
+
       // Consultamos solo ESTA licitación a tu API (NestJS/Vercel)
       // Ajusta la ruta '/api/licitaciones/' según tu backend real
-      const { data: licitacionActualizada } = await axios.get(`/api/licitaciones/${id}`);
+      const { data: licitacionActualizada } = await axios.get(`/api/licitaciones/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       console.log(`Polling ${id}: estado actual ${licitacionActualizada.status}`);
       // Actualizamos solo este registro en el array local
       licitaciones.value[index] = { 
