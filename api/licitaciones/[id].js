@@ -1,6 +1,9 @@
 import { ObjectId, MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
 import dns from 'node:dns';
+import { verificarUsuario } from '../utils/auth.js'; // Importamos al guardián de autenticación
+
+dotenv.config();
 // IMPORTANTE: Usa la misma forma de conectar que en tu index.js
 // Si usas una librería auxiliar, impórtala aquí. 
 // Ejemplo genérico asumiendo que tienes una conexión global:
@@ -11,6 +14,12 @@ let clientPromise = client.connect();
 
 export default async function handler(req, res) {
   const { id } = req.query;
+  // --- ZONA DE SEGURIDAD ---
+  try {
+    verificarUsuario(req); // Si falla, salta al catch y no ejecuta nada más
+  } catch (error) {
+    return res.status(401).json({ message: 'Acceso denegado: Loguéate primero' });
+  }
 
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method not allowed' });

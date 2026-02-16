@@ -1,6 +1,14 @@
 import axios from 'axios';
+import { verificarUsuario } from './utils/auth.js';
 
 export default async function handler(req, res) {
+  try {
+    verificarUsuario(req);
+  } catch (error) {
+    // En streams es importante cerrar la conexión si falla
+    res.status(401).end();
+    return;
+  }
   const { file_id } = req.query;
   const token = process.env.TELEGRAM_TOKEN;
 

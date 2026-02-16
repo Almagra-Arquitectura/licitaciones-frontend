@@ -118,7 +118,19 @@ const renderedMarkdown = computed(() => {
 });
 
 const volver = () => {
-  router.push('/'); // O la ruta de tu listado
+  /**
+   * window.history.state.back contiene la URL previa en la SPA.
+   * Si es nulo, significa que el usuario entró directamente a esta URL
+   * o abrió el detalle en una pestaña nueva (historial limpio).
+   */
+  if (window.history.state && window.history.state.back) {
+    // Escenario A: El usuario tiene historial (Viene de la pag 2, 3, etc.)
+    router.back();
+  } else {
+    // Escenario B: Entrada directa (Link compartido)
+    // Lo mandamos al listado principal por defecto
+    router.push('/');
+  }
 };
 
 watch(isDark, (enabled) => {

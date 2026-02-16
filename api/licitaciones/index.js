@@ -1,6 +1,7 @@
 import { MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
 import dns from 'node:dns';
+import { verificarUsuario } from '../utils/auth.js'; // Importamos al guardián de autenticación
 
 dotenv.config();
 
@@ -12,6 +13,12 @@ const client = new MongoClient(process.env.MONGODB_URI);
 let clientPromise = client.connect();
 
 export default async function handler(req, res) {
+  // --- ZONA DE SEGURIDAD ---
+  try {
+    verificarUsuario(req); // Si falla, salta al catch y no ejecuta nada más
+  } catch (error) {
+    return res.status(401).json({ message: 'Acceso denegado: Loguéate primero' });
+  }
   try {
     const connectedClient = await clientPromise;
     const db = connectedClient.db('licitaciones_db');

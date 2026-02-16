@@ -1,6 +1,11 @@
 <script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
 import axios from 'axios';
+import { useRoute, useRouter } from 'vue-router';
+
+// Inicializamos el router
+const route = useRoute();
+const router = useRouter();
 
 // --- CONFIGURACIÓN ---
 //const HF_BACKEND_URL = "http://localhost:8000";
@@ -115,7 +120,21 @@ const actualizarLicitacionLocal = (id, camposNuevos) => {
 
 // --- DATA FETCHING (Paginación y búsqueda) ---
 
-const obtenerDatos = async (targetPage = pagination.value.currentPage) => {
+const logout = () => {
+  // 1. Eliminamos el token de localStorage
+  localStorage.removeItem('auth_token');
+  
+  // 2. (Opcional) Si usas una instancia de Axios personalizada, 
+  // podrías limpiar los headers aquí si fuera necesario.
+  
+  // 3. Redirigimos al Login
+  router.push('/login');
+};
+
+const obtenerDatos = async (targetPage) => {
+  const token = localStorage.getItem('auth_token');
+  // Si no nos pasan página, miramos la URL. Si no hay URL, es la 1.
+  const page = targetPage || Number(route.query.page) || 1;
   loading.value = true;
   
   // LIMPIEZA: Al cambiar de página, limpiamos los pollings anteriores
@@ -124,8 +143,11 @@ const obtenerDatos = async (targetPage = pagination.value.currentPage) => {
 
   try {
     const { data } = await axios.get('/api/licitaciones', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
       params: {
-        page: targetPage,
+        page: page,
         limit: pagination.value.pageSize,
         search: search.value.trim() || undefined,
       },
@@ -152,7 +174,17 @@ const obtenerDatos = async (targetPage = pagination.value.currentPage) => {
 const goToPage = (nextPage) => {
   const total = pagination.value.pages || 1;
   const safePage = Math.min(Math.max(1, nextPage), total);
-  if (safePage === pagination.value.currentPage) return;
+
+  // Si ya estamos en esa página en la URL, no hacemos nada
+  if (safePage === Number(route.query.page)) return;
+
+  // Empujamos el cambio a la URL manteniendo otros filtros (ej: búsqueda)
+  router.push({ 
+    query: { 
+      ...route.query, 
+      page: safePage 
+    } 
+  });
   obtenerDatos(safePage);
 };
 
@@ -188,8 +220,18 @@ const handlePageClick = (page) => {
 
 // --- UTILIDADES ---
 const formatMoneda = (valor) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(valor);
-const streamUrlFor = (fileId) => `/api/stream?file_id=${encodeURIComponent(fileId)}`;
-const downloadUrlFor = (fileId) => `/api/download?file_id=${encodeURIComponent(fileId)}`;
+//const streamUrlFor = (fileId) => `/api/stream?file_id=${encodeURIComponent(fileId)}`;
+const streamUrlFor = (fileId) => {
+  const token = localStorage.getItem('auth_token'); // Recuperamos el token guardado
+  // Devolvemos el link con el token pegado para que el backend deje pasar
+  return `/api/stream?file_id=${encodeURIComponent(fileId)}&token=${token}`;
+};
+//const downloadUrlFor = (fileId) => `/api/download?file_id=${encodeURIComponent(fileId)}`;
+const downloadUrlFor = (fileId) => {
+  const token = localStorage.getItem('auth_token');
+  // Construimos la URL con el token pegado
+  return `/api/download?file_id=${fileId}&token=${token}`;
+};
 const getRequestId = (request, idx) => request._id || `row:${idx}`;
 
 const licitacionesFiltradas = computed(() => licitaciones.value);
@@ -283,6 +325,27 @@ const formatearFecha = (fechaString) => {
         <input v-model="search" type="text" placeholder="Buscar por palabras clave..."
           class="filter-input header-search-input" />
         <div class="theme-toggle">
+          <button 
+            @click="logout" 
+            class="logout-btn text-gray-500 hover:text-red-600 transition-colors p-1 mr-[-10px]"
+            title="Cerrar sesión"
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="24" 
+              height="24" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              stroke-width="2" 
+              stroke-linecap="round" 
+              stroke-linejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
           <!-- From Uiverse.io by artginzburg -->
           <label class="switch">
             <input v-model="isDark" class="checkbox" type="checkbox" />
@@ -551,7 +614,25 @@ h1 {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.theme-toggle .switch {
   transform: rotate(90deg);
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+/* Efecto suave de fondo al pasar el ratón por el icono de logout */
+.logout-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1); /* Un fondo rojo muy tenue */
 }
 
 .filters {
@@ -974,11 +1055,9 @@ a.download-btn {
   display: none !important;
 }
 
-/* The switch - the box around the slider */
+/* The switch - the box around the slider font-size: 17px;*/
 .switch {
   --container-width: 3.5em;
-
-  font-size: 17px;
   position: relative;
   display: inline-block;
   width: var(--container-width);

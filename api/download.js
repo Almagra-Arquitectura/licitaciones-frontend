@@ -1,6 +1,14 @@
+import { verificarUsuario } from './utils/auth.js';
+
 export default async function handler(req, res) {
   const { file_id } = req.query; // Recibes el ID desde el botón de Vue
   const token = process.env.TELEGRAM_TOKEN;
+  // --- ZONA DE SEGURIDAD ---
+  try {
+    verificarUsuario(req); // El guardián buscará automáticamente en req.query.token
+  } catch (error) {
+    return res.status(401).send('No autorizado'); // Texto plano porque es una descarga
+  }
 
   if (!file_id) {
     return res.status(400).json({ error: "Falta el file_id" });
