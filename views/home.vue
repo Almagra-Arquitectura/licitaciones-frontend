@@ -22,7 +22,6 @@ const STATUS = {
 const licitaciones = ref([]);
 const pagination = ref({ total: 0, pages: 1, currentPage: 1, pageSize: 10 });
 const loading = ref(false);
-const search = ref('');
 const THEME_STORAGE_KEY = 'theme_mode';
 const isDark = ref(true);
 
@@ -131,45 +130,7 @@ const logout = () => {
   router.push('/login');
 };
 
-const obtenerDatos = async (targetPage) => {
-  const token = localStorage.getItem('auth_token');
-  // Si no nos pasan página, miramos la URL. Si no hay URL, es la 1.
-  const page = targetPage || Number(route.query.page) || 1;
-  loading.value = true;
-  
-  // LIMPIEZA: Al cambiar de página, limpiamos los pollings anteriores
-  // para no gastar recursos buscando IDs que ya no están visibles.
-  Object.keys(activePolls.value).forEach(id => detenerPolling(id));
 
-  try {
-    const { data } = await axios.get('/api/licitaciones', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      params: {
-        page: page,
-        limit: pagination.value.pageSize,
-        search: search.value.trim() || undefined,
-      },
-    });
-    
-    licitaciones.value = data.results;
-    pagination.value = data.info;
-
-    // Reactivar polling: Si cargamos la página y hay licitaciones en estado "2" (Analyzing),
-    // debemos reanudar su vigilancia automáticamente.
-    licitaciones.value.forEach(lic => {
-      if (lic.status === STATUS.ANALYZING) {
-        iniciarPolling(lic._id);
-      }
-    });
-
-  } catch (error) {
-    console.error('Error al obtener licitaciones:', error);
-  } finally {
-    loading.value = false;
-  }
-};
 
 const goToPage = (nextPage) => {
   const total = pagination.value.pages || 1;
@@ -185,7 +146,6 @@ const goToPage = (nextPage) => {
       page: safePage 
     } 
   });
-  obtenerDatos(safePage);
 };
 
 const visiblePages = computed(() => {
@@ -244,13 +204,88 @@ const debounce = (fn, wait = 400) => {
   };
 };
 
-const debouncedSearch = debounce(() => obtenerDatos(1), 400);
-
-watch(search, () => debouncedSearch());
 watch(isDark, (enabled) => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(THEME_STORAGE_KEY, enabled ? 'dark' : 'light');
 });
+
+const search = ref(route.query.search || '');
+
+// 1. Debounce: Solo para empujar el cambio a la URL
+const actualizarUrl = debounce((val) => {
+  router.push({
+    query: {
+      ...route.query,
+      search: val.trim() || undefined,
+      page: 1 // Reiniciamos página al buscar
+    }
+  });
+}, 500);
+
+// 2. Watcher del Input: Dispara el debounce
+watch(search, (nuevoValor) => {
+  actualizarUrl(nuevoValor);
+});
+
+// 3. Watcher de la Ruta: Carga los datos cuando la URL cambia
+watch(
+  () => [route.query.page, route.query.search],
+  ([newPage, newSearch], [oldPage, oldSearch]) => {
+    // Solo actualizamos el ref 'search' si el cambio viene de fuera 
+    // (ej: botón atrás del navegador), no si nosotros mismos lo cambiamos
+    if (newSearch !== search.value) {
+      search.value = newSearch || '';
+    }
+    obtenerDatos();
+  }
+);
+
+const obtenerDatos = async (targetPage) => {
+  const token = localStorage.getItem('auth_token');
+  // Si no nos pasan página, miramos la URL. Si no hay URL, es la 1.
+  const page = targetPage || Number(route.query.page) || 1;
+  const searchTerm = route.query.search || ''; 
+
+  // Sincronizamos el ref del input con la URL (por si el usuario refresca la página)
+  // Opcional: sincroniza el input si el usuario entró por link directo o refrescó
+  if (search.value !== searchTerm) {
+    search.value = searchTerm;
+  }
+  loading.value = true;
+  
+  // LIMPIEZA: Al cambiar de página, limpiamos los pollings anteriores
+  // para no gastar recursos buscando IDs que ya no están visibles.
+  Object.keys(activePolls.value).forEach(id => detenerPolling(id));
+
+  try {
+    const { data } = await axios.get('/api/licitaciones', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      params: {
+        page: page,
+        limit: pagination.value.pageSize,
+        search: searchTerm.trim() || undefined,
+      },
+    });
+    
+    licitaciones.value = data.results;
+    pagination.value = data.info;
+
+    // Reactivar polling: Si cargamos la página y hay licitaciones en estado "2" (Analyzing),
+    // debemos reanudar su vigilancia automáticamente.
+    licitaciones.value.forEach(lic => {
+      if (lic.status === STATUS.ANALYZING) {
+        iniciarPolling(lic._id);
+      }
+    });
+
+  } catch (error) {
+    console.error('Error al obtener licitaciones:', error);
+  } finally {
+    loading.value = false;
+  }
+};
 
 // --- CICLO DE VIDA ---
 onMounted(() => {
@@ -437,12 +472,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                         class="gif_button gif_button-round"
                         type="button"
                         @click="handleGenerateClick(request)"
-                        aria-label="Reanudar analisis"
-                        title="Reanudar analisis"
+                        aria-label="Rehacer analisis"
+                        title="Rehacer analisis"
                       >
                         <span class="loop-icon">&#x21BB;</span>
-                        <img src="/button.gif" alt="Reanudar analisis" class="gif-img gif-img-default" />
-                        <img src="/hover_button.gif" alt="Reanudar analisis" class="gif-img gif-img-hover" />
+                        <img src="/button.gif" alt="Rehacer analisis" class="gif-img gif-img-default" />
+                        <img src="/hover_button.gif" alt="Rehacer analisis" class="gif-img gif-img-hover" />
                       </button>
                     </div>
                   </div>
