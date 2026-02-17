@@ -1,7 +1,8 @@
 import { verificarUsuario } from './utils/auth.js';
 
 export default async function handler(req, res) {
-  const { file_id } = req.query; // Recibes el ID desde el botón de Vue
+  const { file_id, title } = req.query; // Recibes el ID desde el botón de Vue
+  const fileName = title ? `${title}.pdf` : "pliego.pdf";
   const token = process.env.TELEGRAM_TOKEN;
   // --- ZONA DE SEGURIDAD ---
   try {

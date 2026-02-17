@@ -2,7 +2,7 @@
   <div :class="['page-shell', isDark ? 'dark-mode' : '']">
   <header class="global-navbar">
     <a class="navbar-brand" href="/">
-      <img class="logo-img desktop-logo" src="/main_logo.svg" alt="Logo" width="220" height="0">
+      <img class="logo-img desktop-logo" src="/main_logo.svg" alt="Logo" width="200" height="0">
       <img class="logo-img mobile-logo" src="/main_logo2.svg" alt="Logo" width="120" height="0">
     </a>
     <div class="navbar-right">
@@ -32,13 +32,13 @@
       </div>
     </div>
 
-    <div v-else class="content-state">
+    <div v-else class="content-state pb-6">
       <div class="toolbar">
         <button @click="volver" class="btn-secondary">← Volver</button>
         <span class="badge">Expediente: {{ licitacionData.expediente }}</span>
       </div>
 
-      <div class="markdown-viewer" v-html="renderedMarkdown"></div>
+      <div class="markdown-viewer p-4 md:p-6 lg:p-8 text-xs sm:text-sm lg:text-lg" v-html="renderedMarkdown"></div>
     </div>
 
   </div>
@@ -185,7 +185,7 @@ onMounted(() => {
 
 .logo-img {
   display: block;
-  width: 220px;
+  width: 200px;
   max-width: 100%;
   height: auto;
 }
@@ -282,7 +282,7 @@ onMounted(() => {
 
 /* Contenedor principal centrado */
 .page-container {
-  max-width: 900px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 20px;
   font-family: 'Segoe UI', sans-serif;
@@ -353,7 +353,6 @@ onMounted(() => {
 /* --- ESTILOS DEL MARKDOWN (Copiar los que te pasé antes) --- */
 .markdown-viewer {
   background: #f4f6fa;
-  padding: 40px;
   border: 1px solid #d7dee8;
   border-radius: 8px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);

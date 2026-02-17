@@ -9,7 +9,8 @@ export default async function handler(req, res) {
     res.status(401).end();
     return;
   }
-  const { file_id } = req.query;
+  const { file_id, title } = req.query;
+  const fileName = title ? `${title}.pdf` : "pliego.pdf";
   const token = process.env.TELEGRAM_TOKEN;
 
   if (!file_id) {
@@ -36,8 +37,8 @@ export default async function handler(req, res) {
 
     // 3. Configurar cabeceras para que el navegador lo reconozca como PDF
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'inline; filename="pliego.pdf"');
-
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(fileName)}"; filename*=UTF-8''${encodeURIComponent(fileName)}`);
+    res.setHeader('Title', fileName);
     // 4. Tubería (Pipe): lo que llega de Telegram se envía al usuario al instante
     response.data.pipe(res);
 

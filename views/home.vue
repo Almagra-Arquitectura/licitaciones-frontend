@@ -187,10 +187,10 @@ const handlePageClick = (page) => {
 // --- UTILIDADES ---
 const formatMoneda = (valor) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(valor);
 //const streamUrlFor = (fileId) => `/api/stream?file_id=${encodeURIComponent(fileId)}`;
-const streamUrlFor = (fileId) => {
+const streamUrlFor = (fileId, etiqueta, expediente) => {
   const token = localStorage.getItem('auth_token'); // Recuperamos el token guardado
   // Devolvemos el link con el token pegado para que el backend deje pasar
-  return `/api/stream?file_id=${encodeURIComponent(fileId)}&token=${token}`;
+  return `/api/stream?file_id=${encodeURIComponent(fileId)}&token=${token}&title=${encodeURIComponent(expediente)+ '-' + encodeURIComponent(etiqueta) }`;
 };
 //const downloadUrlFor = (fileId) => `/api/download?file_id=${encodeURIComponent(fileId)}`;
 const downloadUrlFor = (fileId) => {
@@ -299,7 +299,7 @@ onMounted(() => {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
     isDark.value = savedTheme === 'dark';
   }
-  console.log("Componente montado.");
+  // console.log("Componente montado.");
   obtenerDatos();
 });
 
@@ -348,6 +348,22 @@ const formatearFecha = (fechaString) => {
   }).format(fecha);
 };
 
+const esNueva = (fechaString) => {
+  if (!fechaString) return false;
+  
+  const fechaPublicacion = new Date(fechaString);
+  const ahora = new Date();
+  
+  // Calculamos la diferencia en milisegundos
+  const diferenciaMs = ahora - fechaPublicacion;
+  
+  // Convertimos a horas (1000ms * 60s * 60m = 1 hora)
+  const horasTranscurridas = diferenciaMs / (1000 * 60 * 60);
+  
+  // Retorna TRUE si han pasado menos de 24 horas y la fecha no es futura
+  return horasTranscurridas < 24 && horasTranscurridas >= 0;
+};
+
 </script>
 
 <template>
@@ -356,12 +372,12 @@ const formatearFecha = (fechaString) => {
     <header class="header fixed-header">
       <div class="header-content">
         <a class="navbar-brand d-inline-block h-blur" href="/">
-          <img class="hidden md:block logo-img" src="/main_logo.svg" alt="Logo" width="260" height="0">
+          <img class="hidden md:block logo-img" src="/main_logo.svg" alt="Logo" width="200" height="0">
           <img class="md:hidden logo-img" src="/main_logo2.svg" alt="Logo" width="125" height="0">
         </a>
         <div>
-          <h1>Licitaciones de servicios de publicidad</h1>
-          <p class="subtitle">Encuentra y explora las últimas licitaciones públicas, filtradas por IA.</p>
+          <h1 class="text-[1.05rem]">Licitaciones de servicios de publicidad</h1>
+          <!-- <p class="subtitle">Encuentra y explora las últimas licitaciones públicas, filtradas por IA.</p> -->
         </div>
         <input v-model="search" type="text" placeholder="Buscar por palabras clave..."
           class="filter-input header-search-input" />
@@ -406,23 +422,31 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     </header>
 
     <!-- Everything else scrolls -->
-    <div class="main-scrollable">
+    <div class="main-scrollable mt-[190px] md:mt-[200px] lg:mt-[120px] xl:mt-[120px]">
       <!-- Mobile search under header -->
-      <section class="filters filters-bar mobile-search-section mt-[50px] lg:mt-[5px]">
+      <section class="filters filters-bar mobile-search-section mt-[40px] sm:mt-[50px] lg:mt-[5px]">
         <input v-model="search" type="text" placeholder="Buscar por palabras clave..." class="filter-input" />
       </section>
 
       <!-- Requests list -->
-      <main class="container mt-[40px] lg:mt-[0px]">
+      <main class="container mt-[40px] lg:mt-[0px] lg:px-4">
         <div v-if="licitacionesFiltradas.length === 0" class="no-results">
           No se encontraron solicitudes.
         </div>
         <div v-else class="request-list">
           <div v-for="(request, idx) in licitacionesFiltradas" :key="getRequestId(request, idx)"
             class="request-card neumorph-card mb-4">
-            <div class="request-card-content grid grid-cols-1 lg:grid-cols-12 gap-4 p-6 w-full items-start">
+            <span 
+              v-if="esNueva(request.f_publicacion)" 
+              class="absolute top-0 right-0 px-2 py-1 bg-indigo-400 text-white text-[10px] font-bold rounded-md uppercase tracking-wider shadow-sm z-10"
+            >
+              Nuevo
+            </span>
+            <div class=" grid grid-cols-1 lg:grid-cols-12 gap-4 md:p-6 p-3 sm:p-4 w-full items-start">
               <div class="request-col-main lg:col-span-5 flex flex-col gap-3">
-                <h2 class="request-title">
+                <h2 :title="request.objeto_cont" :class="{'cursor-pointer': needsExpandToggle(request.objeto_cont)}" class="request-title" @click.="toggleExpanded(getRequestId(request, idx))"
+                    @keyup.enter="toggleExpanded(getRequestId(request, idx))"
+                    @keyup.space.prevent="toggleExpanded(getRequestId(request, idx))" >
                   {{
                     isExpanded(getRequestId(request, idx))
                       ? request.objeto_cont
@@ -430,14 +454,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                   }}
                   <span
                     v-if="needsExpandToggle(request.objeto_cont)"
-                    class="expand-toggle"
-                    role="button"
-                    tabindex="0"
-                    @click="toggleExpanded(getRequestId(request, idx))"
-                    @keyup.enter="toggleExpanded(getRequestId(request, idx))"
-                    @keyup.space.prevent="toggleExpanded(getRequestId(request, idx))"
+                    class="expand-toggle text-indigo-400"
                   >
-                    {{ isExpanded(getRequestId(request, idx)) ? ' Menos' : ' Mas' }}
+                    {{ isExpanded(getRequestId(request, idx)) ? 'Ver Menos' : 'Ver Más' }}
                   </span>
                 </h2>
                 <div class="request-card-footer">
@@ -445,18 +464,18 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                   <div class="request-action flex">
                     <button
                       v-if="!request.status || request.status === 1 || request.status === 4"
-                      class="gif_button"
-                      @click="handleGenerateClick(request)"><span id="resume1">GENERAR RESUMEN</span>
+                      class="gif_button rounded-md px-2 py-1"
+                      @click="handleGenerateClick(request)"><span id="resume1" class="text-md">GENERAR RESUMEN</span>
                       <img src="/button.gif" alt="Resume PDF" class="gif-img gif-img-default" />
                       <img src="/hover_button.gif" alt="Resume PDF hover" class="gif-img gif-img-hover" />
                     </button>
 
                     <button
                       v-else-if="request.status === 2"
-                      class="gif_button is-disabled animate-pulse pulse-fast"
+                      class="gif_button rounded-md px-2 py-1 is-disabled animate-pulse pulse-fast"
                       type="button"
                       disabled
-                    ><span>ANALIZANDO</span>
+                    ><span>ANALIZANDO ...</span>
                       <img src="/button.gif" alt="Analizando" class="gif-img gif-img-default" />
                       <img src="/hover_button.gif" alt="Analizando" class="gif-img gif-img-hover" />
                     </button>
@@ -470,18 +489,18 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                     <div v-else-if="request.status === 3" class="completed-actions">
                       <router-link
                         :to="{ name: 'LicitacionResumen', params: { id: request._id }}"
-                        class="btn-completed-main bg-blue-400 hover:bg-blue-500"
+                        class="btn-completed-main text-indigo-600 bg-indigo-100 rounded-md px-2 py-1 text-md inset-ring inset-ring-indigo-700/10"
                       >
                         VER RESUMEN IA
                       </router-link>
                       <button
-                        class="gif_button gif_button-round"
+                        class="gif_button gif_button-round p-2"
                         type="button"
                         @click="handleGenerateClick(request)"
                         aria-label="Rehacer analisis"
                         title="Rehacer analisis"
                       >
-                        <span class="loop-icon">&#x21BB;</span>
+                        <span class="loop-icon text-lg">&#x21BB;</span>
                         <img src="/button.gif" alt="Rehacer analisis" class="gif-img gif-img-default" />
                         <img src="/hover_button.gif" alt="Rehacer analisis" class="gif-img gif-img-hover" />
                       </button>
@@ -490,28 +509,43 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 </div>
               </div>
 
-              <div class="request-col request-col-meta lg:col-span-4 flex flex-col gap-2 text-sm text-gray-600 lg:border-l lg:border-gray-200 lg:pl-3">
+              <div class="request-col-meta lg:col-span-4 flex flex-col gap-2 text-sm text-gray-600 lg:border-l lg:border-gray-200 lg:pl-3">
                 <div class="meta-row"><strong>Precio:</strong><span>{{ request.importe }}</span></div>
                 <div class="meta-row"><strong>Publicado:</strong><span>{{ formatearFecha(request.f_publicacion) }}</span></div>
                 <div class="meta-row"><strong>Fecha límite:</strong><span>{{ formatearFecha(request.fecha_fin_po) }}</span></div>
                 <div class="meta-row"><strong>Lugar:</strong><span>{{ request.lugar_ejecucion }}</span></div>
               </div>
 
-              <div class="request-col request-col-links lg:col-span-3 flex flex-col gap-2 lg:pl-3">
+              <div class="lg:col-span-3 flex flex-col gap-2  lg:pl-3">
                 <div class="meta-row">
-                  <strong>Enlace:</strong>
-                  <a :href="request.url" target="_blank" rel="noopener">Ver licitación</a>
+                  <a class="file-badge rounded-md px-2 py-1 flex items-center font-[500]" :href="request.url" target="_blank" rel="noopener">
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      class="w-4 h-4 mr-1" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      stroke-width="2" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round"
+                    >
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                    Licitación Original
+                  </a>
                 </div>
                 <div v-if="request.archivos_principales && request.archivos_principales.length" class="files-block">
                   <div class="file-list">
                     <div class="file-items gap-2 flex" v-for="archivo in request.archivos_principales"
                       :key="archivo.telegram_file_id">
 
-                      <a class="file-badge items-center rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 inset-ring inset-ring-indigo-700/10"
-                        :href="streamUrlFor(archivo.telegram_file_id)" target="_blank" rel="noopener">
+                      <a class="file-badge items-center rounded-md px-2 py-1 text-md font-medium inset-ring inset-ring-indigo-700/10"
+                        :href="streamUrlFor(archivo.telegram_file_id,  archivo.etiqueta, request.expediente)" target="_blank" rel="noopener">
                         {{ archivo.etiqueta?.replace(/_/g, ' ') || 'Sin nombre' }}
                       </a>
-                      <a class="download-btn download-badge inline-flex rounded-md bg-blue-100 px-1.5 py-1 text-xs font-medium text-indigo-700 inset-ring inset-ring-red-600/10"
+                      <a title="Descargar pliego" class="download-btn download-badge inline-flex rounded-md bg-blue-100 px-2 py-1 text-md font-medium text-indigo-700 inset-ring inset-ring-red-600/10"
                         :href="downloadUrlFor(archivo.telegram_file_id)" target="_blank" rel="noopener">
                         <svg class="w-3 text-gray-800 dark:text-dark" aria-hidden="true"
                           xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 18">
@@ -615,7 +649,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   display: flex;
   flex-direction: column;
   min-height: 0;
-  margin-top: 110px;
   /* header (50-60px) + filters (50px) */
 }
 
@@ -634,7 +667,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.01em;
 }
@@ -738,10 +771,8 @@ h1 {
 
 .container {
   width: 100%;
-  max-width: 1200px;
   margin: 0 auto;
   flex: 1;
-  padding: 0 8rem;
   box-sizing: border-box;
 }
 
@@ -807,7 +838,6 @@ h1 {
 .expand-toggle {
   display: inline;
   margin-left: 0.15rem;
-  color: #475569;
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
@@ -975,7 +1005,7 @@ a.download-btn {
 }
 
 
-@media (max-width: 1180px) {
+@media (max-width: 1280px) {
   .request-card-content {
     grid-template-columns: 1.35fr 1fr;
   }
@@ -995,7 +1025,6 @@ a.download-btn {
 
 @media (max-width: 800px) {
   .main-scrollable {
-    margin-top: 205px;
   }
 
   .header-content,
@@ -1009,7 +1038,6 @@ a.download-btn {
   .request-card-content {
     grid-template-columns: 1fr;
     gap: 0.7rem;
-    padding: 0.7rem 0.5rem;
   }
 
   .request-col-mainç {
@@ -1037,12 +1065,6 @@ a.download-btn {
   .request-card-footer {
     align-items: center;
     flex-wrap: nowrap;
-  }
-
-  .gif_button {
-    width: 140px;
-    height: 48px;
-    z-index: 1;
   }
 
   .summary-blur {
@@ -1213,6 +1235,7 @@ a.download-btn {
 
 .dark-mode .request-card-content {
   background-color: #1f1f1f;
+  border: 2px solid rgba(255, 255, 255, 0.12);
 }
 
 .dark-mode .request-col-main,
@@ -1237,6 +1260,10 @@ a.download-btn {
   color: #e0e0e0;
 }
 
+.file-badge {
+  color: #0078d4;
+  box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.35);
+}
 .dark-mode .file-badge {
   background-color: #1e293b !important;
   color: #dbeafe !important;
@@ -1244,9 +1271,9 @@ a.download-btn {
 }
 
 .dark-mode .download-badge {
-  background-color: #3f1d1d !important;
-  color: #fecaca !important;
-  box-shadow: inset 0 0 0 1px rgba(252, 165, 165, 0.4);
+  background-color: #1e293b !important;
+  color: #dbeafe !important;
+  box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.35);
 }
 
 .dark-mode .download-badge svg {
@@ -1292,16 +1319,11 @@ a.download-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 170px;
-  height: 48px;
   overflow: hidden;
-  border-radius: 50px;
   border: 0;
-  padding: 0;
   background: transparent;
   cursor: pointer;
   z-index: 0;
-  font-size: ;
 }
 
 .gif_button span {
@@ -1309,7 +1331,6 @@ a.download-btn {
   z-index: 3;
   color: #fff;
   font-weight: 700;
-  font-size: 1.1rem;
   white-space: nowrap;
 }
 
@@ -1338,30 +1359,22 @@ a.download-btn {
 }
 
 .btn-completed-main {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 40px;
-  min-width: 140px;
-  padding: 0 0rem;
-  border-radius: 8px;
-
-  color: #fff;
-  font-size: 0.85rem;
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
-  box-shadow: 0 6px 14px rgba(20, 120, 60, 0.28);
+  color: #0078d4;
+  font-weight: 500;
+  font-weight: 600;
 }
 
-
+.dark-mode .btn-completed-main {
+  background-color: #1e293b !important;
+  color: #dbeafe !important;
+  box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.35);
+}
 
 .gif_button-round {
-  width: 48px;
-  min-width: 48px;
-  height: 48px;
   border-radius: 50%;
-  padding: 0;
 }
 
 .gif_button-round .gif-img {
@@ -1369,9 +1382,7 @@ a.download-btn {
 }
 
 .loop-icon {
-  position: relative;
   z-index: 3;
-  font-size: 1.35rem;
   font-weight: 900;
   line-height: 1;
   font-family: "Segoe UI Symbol", "Noto Sans Symbols", sans-serif;
@@ -1382,7 +1393,7 @@ a.download-btn {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: none;
   transform: scale(1.12);
   transform-origin: center;
   transition: opacity 0.15s ease;
@@ -1502,31 +1513,3 @@ a.download-btn {
 }
 
 </style>
-
-<script>
-import { ref, computed, onMounted } from "vue"
-const text = ``
-
-const speedMs = 40
-
-const displayedText = ref("")
-let i = 0
-
-onMounted(() => {
-  const tick = () => {
-    displayedText.value = text.slice(0, i)
-    i++
-
-    if (i <= text.length) {
-      setTimeout(tick, speedMs)
-    }
-  }
-
-  tick()
-})
-
-
-
-
-</script>
-
