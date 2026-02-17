@@ -50,6 +50,7 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import axios from '@/services/axios';
 
 // Hacemos que la tabla ocupe el 100%
 marked.setOptions({
@@ -71,36 +72,26 @@ const isDark = ref(true);
 // ID que viene de la URL
 const licitacionId = route.params.id;
 
-// Función para obtener datos (simulada, reemplaza con tu fetch real)
 const fetchLicitacion = async () => {
+  loading.value = true;
+  error.value = null;
+
   try {
     const token = localStorage.getItem('auth_token');
-    loading.value = true;
-    error.value = null;
 
-    // --- AQUÍ VA TU LLAMADA REAL A LA BASE DE DATOS ---
-    const response = await fetch(`/api/licitaciones/${licitacionId}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
+    // 1. CAMBIO: Usamos axios.get en lugar de fetch
+    const response = await axios.get(`/api/licitaciones/${licitacionId}`, {
+      headers: { 
+        'Authorization': `Bearer ${token}` 
       }
     });
-    const data = await response.json();
-    
-    // SIMULACIÓN DE RESPUESTA DE TU API (BORRA ESTO CUANDO PONGAS TU API)
-    //await new Promise(r => setTimeout(r, 800)); // Fake delay
-    // const data = {
-    //   id: licitacionId,
-    //   expediente: 'SER/25/0048',
-    //   // Simula que viene el JSON con el campo analisis_ia
-    //   analisis_ia: {
-    //     informe_detallado: `# Informe de Viabilidad... (Tu markdown aquí)`
-    //   }
-    //   // PRUEBA DE FALLO: Comenta la línea de arriba para probar la validación
-    // }; 
-    // ---------------------------------------------------
 
-    // VALIDACIÓN CRÍTICA: ¿Existe el resumen?
-    if (!data.analisis_ia || !data.analisis_ia.informe_detallado) {
+    // 2. CAMBIO: En Axios, los datos JSON ya vienen en 'response.data'
+    const data = response.data;
+
+    // VALIDACIÓN CRÍTICA
+    // Usamos ?. (optional chaining) para que no falle si analisis_ia es null
+    if (!data.analisis_ia?.informe_detallado) {
       throw new Error("Esta licitación aún no ha sido auditada por la IA.");
     }
 
@@ -109,7 +100,16 @@ const fetchLicitacion = async () => {
 
   } catch (err) {
     console.error(err);
-    error.value = err.message || "Error al cargar la licitación";
+
+    // 3. SOLUCIÓN AL PROBLEMA DE EXPIRACIÓN
+    // Si el servidor responde "401 Unauthorized", mandamos al login
+    if (err.response && err.response.status === 401) {
+      localStorage.removeItem('auth_token'); // Limpiamos token viejo
+      router.push('/login'); // Redirigimos
+      return;
+    }
+
+    error.value = err.response?.data?.error || err.message || "Error al cargar la licitación";
   } finally {
     loading.value = false;
   }

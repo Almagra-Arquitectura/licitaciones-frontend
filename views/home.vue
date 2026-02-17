@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
-import axios from 'axios';
+import axios from '@/services/axios';
 import { useRoute, useRouter } from 'vue-router';
 
 // Inicializamos el router

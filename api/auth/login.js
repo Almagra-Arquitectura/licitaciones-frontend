@@ -10,10 +10,10 @@ export default async function handler(req, res) {
 
   // Validamos contra las variables de entorno
   if (username === process.env.ADMIN_USER && password === process.env.ADMIN_PASS) {
-    
+
     // Creamos el token (dura 24 horas)
     const token = jwt.sign({ user: username }, process.env.JWT_SECRET, {
-      expiresIn: '24h',
+      expiresIn: '7d',
     });
 
     return res.status(200).json({ token });
