@@ -438,11 +438,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             class="request-card neumorph-card mb-4">
             <span 
               v-if="esNueva(request.f_publicacion)" 
-              class="absolute top-0 right-0 px-2 py-1 bg-indigo-400 text-white text-[10px] font-bold rounded-md uppercase tracking-wider shadow-sm z-10"
+              class="absolute top-0 right-0 px-2 py-1 bg-indigo-200 text-indigo-800 text-[10px] font-bold rounded-md uppercase tracking-wider shadow-sm z-10"
             >
               Nuevo
             </span>
-            <div class=" grid grid-cols-1 lg:grid-cols-12 gap-4 md:p-6 p-3 sm:p-4 w-full items-start">
+            <div class="licitation-card grid grid-cols-1 lg:grid-cols-12 gap-4 md:p-6 p-3 sm:p-4 w-full items-start">
               <div class="request-col-main lg:col-span-5 flex flex-col gap-3">
                 <h2 :title="request.objeto_cont" :class="{'cursor-pointer': needsExpandToggle(request.objeto_cont)}" class="request-title" @click.="toggleExpanded(getRequestId(request, idx))"
                     @keyup.enter="toggleExpanded(getRequestId(request, idx))"
@@ -782,7 +782,9 @@ h1 {
   gap: 0.7rem;
   margin-top: 0.7rem;
 }
-
+.dark-mode .licitation-card {
+  border: 2px solid rgba(227, 197, 197, 0.12);
+}
 .request-card {
   width: 100%;
   min-height: 10px;
