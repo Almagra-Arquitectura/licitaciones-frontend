@@ -193,10 +193,10 @@ const streamUrlFor = (fileId, etiqueta, expediente) => {
   return `/api/stream?file_id=${encodeURIComponent(fileId)}&token=${token}&title=${encodeURIComponent(expediente)+ '-' + encodeURIComponent(etiqueta) }`;
 };
 //const downloadUrlFor = (fileId) => `/api/download?file_id=${encodeURIComponent(fileId)}`;
-const downloadUrlFor = (fileId) => {
+const downloadUrlFor = (fileId, etiqueta, expediente) => {
   const token = localStorage.getItem('auth_token');
   // Construimos la URL con el token pegado
-  return `/api/download?file_id=${fileId}&token=${token}`;
+  return `/api/download?file_id=${fileId}&token=${token}&title=${encodeURIComponent(expediente)+ '-' + encodeURIComponent(etiqueta) }`;
 };
 const getRequestId = (request, idx) => request._id || `row:${idx}`;
 
@@ -509,14 +509,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                 </div>
               </div>
 
-              <div class="request-col-meta lg:col-span-4 flex flex-col gap-2 text-sm text-gray-600 lg:border-l lg:border-gray-200 lg:pl-3">
+              <div class="request-col-meta lg:col-span-4 flex flex-col gap-2 text-sm text-gray-600 lg:border-l lg:border-gray-200 lg:pl-3 md:border-t lg:border-t-0 pt-3 border-gray-200">
                 <div class="meta-row"><strong>Precio:</strong><span>{{ request.importe }}</span></div>
                 <div class="meta-row"><strong>Publicado:</strong><span>{{ formatearFecha(request.f_publicacion) }}</span></div>
                 <div class="meta-row"><strong>Fecha límite:</strong><span>{{ formatearFecha(request.fecha_fin_po) }}</span></div>
                 <div class="meta-row"><strong>Lugar:</strong><span>{{ request.lugar_ejecucion }}</span></div>
               </div>
 
-              <div class="lg:col-span-3 flex flex-col gap-2  lg:pl-3">
+              <div class="lg:col-span-3 flex flex-col gap-2 lg:pl-3 border-t lg:border-t-0 border-gray-200 pt-3 lg:pt-0 lg:border-l xl:border-l-0">
                 <div class="meta-row">
                   <a class="file-badge rounded-md px-2 py-1 flex items-center font-[500]" :href="request.url" target="_blank" rel="noopener">
                     <svg 
@@ -546,7 +546,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                         {{ archivo.etiqueta?.replace(/_/g, ' ') || 'Sin nombre' }}
                       </a>
                       <a title="Descargar pliego" class="download-btn download-badge inline-flex rounded-md bg-blue-100 px-2 py-1 text-md font-medium text-indigo-700 inset-ring inset-ring-red-600/10"
-                        :href="downloadUrlFor(archivo.telegram_file_id)" target="_blank" rel="noopener">
+                        :href="downloadUrlFor(archivo.telegram_file_id, archivo.etiqueta, request.expediente)" target="_blank" rel="noopener">
                         <svg class="w-3 text-gray-800 dark:text-dark" aria-hidden="true"
                           xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 16 18">
                           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
