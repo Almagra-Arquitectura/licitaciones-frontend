@@ -735,7 +735,7 @@ h1 {
 .filter-input,
 .filter-select {
   min-width: 180px;
-  max-width: 320px;
+  max-width: 600px;
   width: 100%;
   flex: 1 1 180px;
   padding: 0.7rem 1.2rem;

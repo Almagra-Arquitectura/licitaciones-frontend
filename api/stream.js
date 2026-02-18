@@ -20,8 +20,8 @@ export default async function handler(req, res) {
   try {
     // 1. Obtener la ruta del archivo desde Telegram
     const tgRes = await fetch(`https://api.telegram.org/bot${token}/getFile?file_id=${file_id}`);
-    //const data = await tgRes.json();
-    console.log("Respuesta de Telegram:", data); // Para depuración
+    const data = await tgRes.json();
+    //console.log("Respuesta de Telegram:", data); // Para depuración
 
     if (!data.ok) {
       return res.status(404).json({ error: "Archivo no encontrado en Telegram" });
