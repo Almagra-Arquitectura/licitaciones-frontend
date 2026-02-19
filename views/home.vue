@@ -406,7 +406,7 @@ const esNueva = (fechaString) => {
           <h1 class="text-[1.05rem]">Licitaciones de servicios de publicidad</h1>
           <!-- <p class="subtitle">Encuentra y explora las últimas licitaciones públicas, filtradas por IA.</p> -->
         </div>
-        <input v-model="search" type="text" placeholder="Buscar por palabras clave..."
+        <input v-model="search" name="search" type="text" placeholder="Buscar por palabras clave..."
           class="filter-input header-search-input" />
         <div class="theme-toggle">
           <button 
@@ -432,7 +432,7 @@ const esNueva = (fechaString) => {
           </button>
           <!-- From Uiverse.io by artginzburg -->
           <label class="switch">
-            <input v-model="isDark" class="checkbox" type="checkbox" />
+            <input v-model="isDark" class="checkbox" type="checkbox" name="checkbox-dark" />
             <span class="slider"></span>
             <!--Copyright - 2026 Praashoo7 (Prashant) 
 Copyright - 2026 artginzburg (Arthur Ginzburg) 
@@ -452,7 +452,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     <div class="main-scrollable mt-[190px] md:mt-[200px] lg:mt-[120px] xl:mt-[120px]">
       <!-- Mobile search under header -->
       <section class="filters filters-bar mobile-search-section mt-[40px] sm:mt-[50px] lg:mt-[5px]">
-        <input v-model="search" type="text" placeholder="Buscar por palabras clave..." class="filter-input" />
+        <input v-model="search" name="saearch2" type="text" placeholder="Buscar por palabras clave..." class="filter-input" />
       </section>
 
       <!-- Requests list -->
@@ -486,10 +486,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                     {{ isExpanded(getRequestId(request, idx)) ? 'Ver Menos' : 'Ver Más' }}
                   </span>
                 </h2>
-                <div class="flex">
+                <div class="flex justify-between items-center">
                   <button 
                     @click.prevent="toggleFavorite(request)"
-                    class="group self-center rounded-full hover:bg-yellow-50 transition-all duration-200"
+                    class="group self-center rounded-full transition-all duration-200"
                     :title="request.favorite ? 'Quitar de favoritos' : 'Añadir a favoritos'"
                   >
                     <svg 
