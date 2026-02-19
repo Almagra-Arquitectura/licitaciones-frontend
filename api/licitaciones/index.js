@@ -35,27 +35,43 @@ export default async function handler(req, res) {
 
     const query1 = search
       ? {
-          $or: [
-            { objeto_cont: { $regex: escapeRegExp(search), $options: 'i' } },
-            { expediente: { $regex: escapeRegExp(search), $options: 'i' } },
-            { lugar_ejecucion: { $regex: escapeRegExp(search), $options: 'i' } },
-            //{ importe: { $regex: escapeRegExp(search), $options: 'i' } },
-            //{ fecha_fin_po: { $regex: escapeRegExp(search), $options: 'i' } },
-            //{ f_publicacion: { $regex: escapeRegExp(search), $options: 'i' } },
-          ],
-        }
+        $or: [
+          { objeto_cont: { $regex: escapeRegExp(search), $options: 'i' } },
+          { expediente: { $regex: escapeRegExp(search), $options: 'i' } },
+          { lugar_ejecucion: { $regex: escapeRegExp(search), $options: 'i' } },
+          //{ importe: { $regex: escapeRegExp(search), $options: 'i' } },
+          //{ fecha_fin_po: { $regex: escapeRegExp(search), $options: 'i' } },
+          //{ f_publicacion: { $regex: escapeRegExp(search), $options: 'i' } },
+        ],
+      }
       : {};
 
     // 2. Calcular cu�ntos documentos saltar
     const skip = (page - 1) * limit;
 
     // 3. Ejecutar la consulta con skip y limit
-    // countDocuments nos ayuda a saber el total para la paginaci�n frontal
+    // countDocuments nos ayuda a saber el total para la paginacin frontal
     const totalLicitaciones = await coleccion.countDocuments(query1);
 
     const licitaciones = await coleccion
-      .find(query1)
-      .sort({ favorite: -1, f_publicacion: -1 }) // Ordenar por los más recientes y favoritos
+      .aggregate([
+        // PASO 1: Normalizamos el campo 'favorite' al vuelo
+        {
+          $addFields: {
+            // $ifNull verifica si 'favorite' existe. Si no existe o es nulo, le asigna 'false' temporalmente.
+            favorite: { $ifNull: ["$favorite", false] }
+          }
+        },
+        // PASO 2: Ordenamos los resultados
+        {
+          $sort: {
+            favorite: -1, // Pone los 'true' (favoritos) hasta arriba
+            f_publicacion: -1       // Luego ordena por fecha de publicacion descendente (las más nuevas primero). 
+            // Si tienes un campo 'fecha', cámbialo aquí (ej. createdAt: -1)
+          }
+        }
+      ])
+      //.sort({ favorite: -1, f_publicacion: -1 }) // Ordenar por los más recientes y favoritos
       .skip(skip)
       .limit(limit)
       .toArray();
