@@ -55,7 +55,7 @@ export default async function handler(req, res) {
 
     const licitaciones = await coleccion
       .find(query1)
-      .sort({ f_publicacion: -1 }) // Ordenar por los más recientes
+      .sort({ favorite: -1, f_publicacion: -1 }) // Ordenar por los más recientes y favoritos
       .skip(skip)
       .limit(limit)
       .toArray();

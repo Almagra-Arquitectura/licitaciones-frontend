@@ -54,6 +54,33 @@ const handleGenerateClick = async (licitacion) => {
   }
 };
 
+const toggleFavorite = async (licitacion) => {
+  // 1. Calculamos el nuevo estado (si no existe, asumimos que era false/0)
+  const nuevoEstado = !licitacion.favorite;
+  
+  // 2. Optimistic UI Update: Cambiamos la UI al instante para que se sienta rápido
+  licitacion.favorite = nuevoEstado;
+
+  try {
+    const token = localStorage.getItem('auth_token');
+    // 3. Enviamos el cambio a la base de datos
+    const response = await axios.patch(`/api/licitaciones/favorite`, 
+      { 
+        id: licitacion._id,
+        favorite: nuevoEstado,
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    //console.log(`Licitación ${response.data.lt._id} actualizada a favorito: ${response.data.lt.favorite}`);
+    obtenerDatos(); // Refrescamos la lista para sincronizar con el backend (opcional, si quieres ver cambios en otros campos)
+  } catch (error) {
+    console.error('Error al guardar favorito:', error);
+    // Si falla, revertimos el cambio en la UI
+    licitacion.favorite = !nuevoEstado; 
+  }
+};
+
 // 2. Función de Polling (Cada 10 segundos)
 const iniciarPolling = (id) => {
   // Si ya existe un polling para este ID, no creamos otro
@@ -438,12 +465,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             class="request-card neumorph-card mb-4">
             <span 
               v-if="esNueva(request.f_publicacion)" 
-              class="absolute top-0 right-0 px-2 py-1 bg-indigo-200 text-indigo-800 text-[10px] font-bold rounded-md uppercase tracking-wider shadow-sm z-10"
+              class="absolute top-0 right-0 px-1 py-1 md:px-2 bg-indigo-200 text-indigo-800 text-[10px] font-bold rounded-sm uppercase tracking-wider shadow-sm z-10"
             >
               Nuevo
             </span>
             <div class="licitation-card grid grid-cols-1 lg:grid-cols-12 gap-4 md:p-6 p-3 sm:p-4 w-full items-start">
-              <div class="request-col-main lg:col-span-5 flex flex-col gap-3">
+              <div class="request-col-main lg:col-span-5 flex flex-col gap-1">
                 <h2 :title="request.objeto_cont" :class="{'cursor-pointer': needsExpandToggle(request.objeto_cont)}" class="request-title" @click.="toggleExpanded(getRequestId(request, idx))"
                     @keyup.enter="toggleExpanded(getRequestId(request, idx))"
                     @keyup.space.prevent="toggleExpanded(getRequestId(request, idx))" >
@@ -459,11 +486,36 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                     {{ isExpanded(getRequestId(request, idx)) ? 'Ver Menos' : 'Ver Más' }}
                   </span>
                 </h2>
+                <div class="flex">
+                  <button 
+                    @click.prevent="toggleFavorite(request)"
+                    class="group self-center rounded-full hover:bg-yellow-50 transition-all duration-200"
+                    :title="request.favorite ? 'Quitar de favoritos' : 'Añadir a favoritos'"
+                  >
+                    <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      class="w-6 h-6 transition-all duration-300"
+                      :class="request.favorite ? 'text-yellow-400 fill-yellow-400 scale-110' : 'text-gray-400 fill-none group-hover:text-yellow-400 group-hover:scale-110'"
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor" 
+                      stroke-width="2"
+                    >
+                      <path 
+                        stroke-linecap="round" 
+                        stroke-linejoin="round" 
+                        d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" 
+                      />
+                    </svg>
+                  </button>
+                </div>
                 <div class="request-card-footer">
                   <div class="request-genre">{{ request.expediente }}</div>
                   <div class="request-action flex">
+                    <span title="Revisar la licitación original para revisar archivos y esperar al siguiente scraping para sincronizarlos" v-if="request.archivos_principales.length === 0" class="no-files-indicator text-red-500 font-medium span-no-pliegos">
+                      Pliegos NO disponibles
+                    </span>
                     <button
-                      v-if="!request.status || request.status === 1 || request.status === 4"
+                      v-else-if="!request.status || request.status === 1 || request.status === 4"
                       class="gif_button rounded-md px-2 py-1"
                       @click="handleGenerateClick(request)"><span id="resume1" class="text-md">GENERAR RESUMEN</span>
                       <img src="/button.gif" alt="Resume PDF" class="gif-img gif-img-default" />
@@ -535,6 +587,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
                     </svg>
                     Licitación Original
                   </a>
+                  
                 </div>
                 <div v-if="request.archivos_principales && request.archivos_principales.length" class="files-block">
                   <div class="file-list">
@@ -769,6 +822,17 @@ h1 {
   letter-spacing: 0.01em;
 }
 
+.span-no-pliegos {
+  padding: 0.5rem 1rem;
+  background-color: rgba(79, 68, 239, 0.1);
+  color: #4f44ef;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+.dark-mode .span-no-pliegos {
+  background-color: rgba(79, 68, 239, 0.1);
+  color: #908ae5;
+}
 .container {
   width: 100%;
   margin: 0 auto;
@@ -822,7 +886,6 @@ h1 {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 0.75rem;
 }
 
 .request-col-main h2 {
@@ -1026,8 +1089,6 @@ a.download-btn {
 }
 
 @media (max-width: 800px) {
-  .main-scrollable {
-  }
 
   .header-content,
   .filters,
@@ -1042,7 +1103,7 @@ a.download-btn {
     gap: 0.7rem;
   }
 
-  .request-col-mainç {
+  .request-col-main {
     border-right: none;
     padding-right: 0;
   }
@@ -1222,7 +1283,7 @@ a.download-btn {
 }
 
 .dark-mode .expand-toggle {
-  color: #e2e8f0;
+  color: rgb(165, 165, 210);
 }
 
 .dark-mode .request-col-meta,
@@ -1469,7 +1530,12 @@ a.download-btn {
   background-color: #f1f5f9;
   border-color: #cbd5e0;
 }
-
+.dark-mode .pagination-btn:hover:not(:disabled) {
+  background: #222222;
+  color: #f0f0f0;
+  border-color: #444444;
+  box-shadow: inset 2px 2px 8px #121212, inset -2px -2px 8px #2c2c2c;
+}
 .pagination-btn.is-active {
   background-color: #3b82f6;
   color: white;
@@ -1479,7 +1545,7 @@ a.download-btn {
 .pagination-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  background-color: #f8fafc;
+ 
 }
 
 .pagination-dots {

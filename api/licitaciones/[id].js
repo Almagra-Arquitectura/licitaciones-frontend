@@ -1,6 +1,5 @@
 import { ObjectId, MongoClient } from 'mongodb';
 import dotenv from 'dotenv';
-import dns from 'node:dns';
 import { verificarUsuario } from '../utils/auth.js'; // Importamos al guardián de autenticación
 
 dotenv.config();
