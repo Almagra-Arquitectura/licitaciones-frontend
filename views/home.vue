@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
 import axios from '@/services/axios';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router'; 
 
 // Inicializamos el router
 const route = useRoute();
@@ -9,7 +9,8 @@ const router = useRouter();
 
 // --- CONFIGURACIÓN ---
 //const HF_BACKEND_URL = "http://localhost:8000";
-const HF_BACKEND_URL = "https://combined-christabel-sokorro-1f18a293.koyeb.app";
+const HF_BACKEND_URL = import.meta.env.VITE_HF_BACKEND_URL || "http://localhost:8000";
+
 // Mapa de estados para usar nombres en lugar de números mágicos
 const STATUS = {
   PENDING: 1,
@@ -390,7 +391,7 @@ const esNueva = (fechaString) => {
   // Retorna TRUE si han pasado menos de 24 horas y la fecha no es futura
   return horasTranscurridas < 24 && horasTranscurridas >= 0;
 };
-
+const title_frontend= import.meta.env.VITE_TITLE_FRONTEND || "Licitaciones públicas";
 </script>
 
 <template>
@@ -403,7 +404,7 @@ const esNueva = (fechaString) => {
           <img class="md:hidden logo-img" src="/main_logo2.svg" alt="Logo" width="125" height="0">
         </a>
         <div>
-          <h1 class="text-[1.05rem]">Licitaciones de servicios de publicidad</h1>
+          <h1 class="text-[1.05rem]">{{ title_frontend }}</h1>
           <!-- <p class="subtitle">Encuentra y explora las últimas licitaciones públicas, filtradas por IA.</p> -->
         </div>
         <input v-model="search" name="search" type="text" placeholder="Buscar por palabras clave..."
