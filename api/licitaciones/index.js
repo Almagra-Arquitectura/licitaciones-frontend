@@ -31,57 +31,62 @@ export default async function handler(req, res) {
     // Usamos parseInt para asegurar que sean n�meros
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-    const search = (req.query.search || '').trim();
+    // Usamos replace(/\+/g, ' ') para cambiar todos los '+' por un espacio en blanco real
+    const search = (req.query.search || '').replace(/\+/g, ' ').trim();
 
-    const query1 = search
-      ? {
-          $or: [
-            { objeto_cont: { $regex: escapeRegExp(search), $options: 'i' } },
-            { expediente: { $regex: escapeRegExp(search), $options: 'i' } },
-            { lugar_ejecucion: { $regex: escapeRegExp(search), $options: 'i' } },
-            //{ importe: { $regex: escapeRegExp(search), $options: 'i' } },
-            //{ fecha_fin_po: { $regex: escapeRegExp(search), $options: 'i' } },
-            //{ f_publicacion: { $regex: escapeRegExp(search), $options: 'i' } },
-          ],
-        }
-      : {};
+
+    // 1. PRIMER RASTREADOR: ¿Qué está recibiendo realmente el servidor?
+    console.log("====================================");
+    console.log("1. TEXTO RECIBIDO DEL FRONTEND:", search);
+
+    let query1 = {};
+    // 3. Crear expresión regular flexible para la búsqueda (ignora espacios extra)
+    if (search) {
+      // Separamos las palabras y las limpiamos por seguridad
+      const palabrasLimpias = search.split(/\s+/).map(word => escapeRegExp(word));
+      // Las volvemos a unir con '\\s+', lo que obliga a que estén en el mismo orden exacto,
+      // pero permite que haya cualquier cantidad de espacios entre ellas en la base de datos.
+      const fraseExacta = palabrasLimpias.join('\\s+');
+      // Usamos un solo $or para buscar la frase completa en cualquiera de los campos
+      query1 = {
+        $or: [
+          { objeto_cont: { $regex: fraseExacta, $options: 'i' } },
+          { expediente: { $regex: fraseExacta, $options: 'i' } },
+          { lugar_ejecucion: { $regex: fraseExacta, $options: 'i' } }
+        ]
+      };
+    }
 
     // 2. Calcular cu�ntos documentos saltar
     const skip = (page - 1) * limit;
 
     // 3. Ejecutar la consulta con skip y limit
-    // countDocuments nos ayuda a saber el total para la paginaci�n frontal
+    // countDocuments nos ayuda a saber el total para la paginacin frontal
     const totalLicitaciones = await coleccion.countDocuments(query1);
 
     const licitaciones = await coleccion
-      .find(query1)
-      .sort({ favorite: -1, f_publicacion: -1 }) // Ordenar por los más recientes y favoritos
+      .aggregate([
+        { $match: query1 },
+        // PASO 1: Normalizamos el campo 'favorite' al vuelo
+        {
+          $addFields: {
+            // $ifNull verifica si 'favorite' existe. Si no existe o es nulo, le asigna 'false' temporalmente.
+            favorite: { $ifNull: ["$favorite", false] }
+          }
+        },
+        // PASO 2: Ordenamos los resultados
+        {
+          $sort: {
+            favorite: -1, // Pone los 'true' (favoritos) hasta arriba
+            f_publicacion: -1       // Luego ordena por fecha de publicacion descendente (las más nuevas primero). 
+            // Si tienes un campo 'fecha', cámbialo aquí (ej. createdAt: -1)
+          }
+        }
+      ])
+      //.sort({ favorite: -1, f_publicacion: -1 }) // Ordenar por los más recientes y favoritos
       .skip(skip)
       .limit(limit)
       .toArray();
-
-    // Mapeamos los resultados para formatear la fecha antes de enviarlos
-    // const respuesta = licitaciones.map(lic => ({
-    //   ...lic,
-    //   f_publicacion: new Date(lic.f_publicacion).toLocaleString('es-ES', {
-    //       timeZone: 'UTC',     // <--- Esto evita que la hora cambie
-    //       day: '2-digit',
-    //       month: '2-digit',
-    //       year: 'numeric',
-    //       hour: '2-digit',
-    //       minute: '2-digit',
-    //       second: '2-digit'
-    //     }),
-    //   fecha_fin_po: new Date(lic.fecha_fin_po).toLocaleString('es-ES', {
-    //       timeZone: 'UTC',     // <--- Esto evita que la hora cambie
-    //       day: '2-digit',
-    //       month: '2-digit',
-    //       year: 'numeric',
-    //       hour: '2-digit',
-    //       minute: '2-digit',
-    //       second: '2-digit'
-    //     }), 
-    // }));
 
     // 4. Responder con los datos y la información de paginación
 
