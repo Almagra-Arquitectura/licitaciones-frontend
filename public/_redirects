@@ -1,5 +1,0 @@
-# Redirige las llamadas de la API a tus funciones serverless
-/api/* /.netlify/functions/api/:splat  200
-
-# Permite que Vue Router maneje todas las demás rutas
-/* /index.html                     200
