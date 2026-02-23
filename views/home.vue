@@ -400,8 +400,8 @@ const title_frontend= import.meta.env.VITE_TITLE_FRONTEND || "Licitaciones públ
     <header class="header fixed-header">
       <div class="header-content">
         <a class="navbar-brand d-inline-block h-blur" href="/">
-          <img class="hidden md:block logo-img" src="/main_logo.svg" alt="Logo" width="200" height="0">
-          <img class="md:hidden logo-img" src="/main_logo2.svg" alt="Logo" width="125" height="0">
+          <img class="hidden md:block logo-img" src="/main_logo.png" alt="Logo" width="220" height="0">
+          <img class="md:hidden logo-img" src="/main_logo.png" alt="Logo" width="150" height="0">
         </a>
         <div>
           <h1 class="text-[1.05rem]">{{ title_frontend }}</h1>
