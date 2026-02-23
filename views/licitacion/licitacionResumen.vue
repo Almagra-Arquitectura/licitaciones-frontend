@@ -2,8 +2,8 @@
   <div :class="['page-shell', isDark ? 'dark-mode' : '']">
   <header class="global-navbar">
     <a class="navbar-brand" href="/">
-      <img class="logo-img desktop-logo" src="/main_logo.svg" alt="Logo" width="200" height="0">
-      <img class="logo-img mobile-logo" src="/main_logo2.svg" alt="Logo" width="120" height="0">
+      <img class="logo-img desktop-logo" src="/main_logo.png" alt="Logo" width="200" height="0">
+      <img class="logo-img mobile-logo" src="/main_logo.png" alt="Logo" width="180" height="0">
     </a>
     <div class="navbar-right">
       <div class="navbar-links">
@@ -485,7 +485,7 @@ onMounted(() => {
 
 @media (max-width: 560px) {
   .logo-img {
-    width: 160px;
+    width: 180px;
   }
 
   .nav-current,
@@ -506,7 +506,7 @@ onMounted(() => {
 
   .mobile-logo {
     display: block;
-    width: 108px;
+    width: 180px;
   }
 }
 </style>
